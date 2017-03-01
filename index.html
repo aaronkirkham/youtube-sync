@@ -9,25 +9,43 @@
         <link rel="stylesheet" href="css/style.min.css" />
     </head>
     <body>
-        <div class="container">
-            <div class="column">
-                <h1 id="video-title"></h1>
-                <div id="player"></div>
-                <form name="queue-video" onsubmit="queueVideo();return false;">
-                    <input type="text" name="video-url" id="video-url" />
-                    <input type="submit" name="submit" />
-                </form>
+        <header>
+            <div class="container">
+                YouTube-Sync
             </div>
-            <div class="column column-half">
-                chat will go here...
+        </header>
+        <section class="main">
+            <div class="container">
+                <div class="row">
+                    <div class="column">
+                        <h1 id="video-title"></h1>
+                        <h2 id="video-subtitle"></h2>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="column">
+                        <div class="player-container">
+                            <div id="player"></div>
+                            <form name="queue-video" onsubmit="queueVideo();return false;">
+                                <input type="text" name="video-url" id="video-url" />
+                                <input type="submit" name="submit" />
+                            </form>
+                        </div>
+                    </div>
+                    <div class="column column-half">
+                        <div class="player-container">
+                            chat will go here...
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
+        </section>
 
         <script src="http://localhost:8080/socket.io/socket.io.js"></script>
         <script src="https://www.youtube.com/iframe_api" async></script>
         <script>
             const socket = io('http://localhost:8080');
-            let player, isPlayerReady = false, loadVideoWhenReady;
+            let player, isPlayerReady = false, loadVideoWhenReady = null;
 
             function onYouTubeIframeAPIReady() {
                 player = new YT.Player('player', {
@@ -42,7 +60,8 @@
                     },
                     events: {
                         'onReady': onYouTubePlayerReady,
-                        'onStateChange': onYouTubePlayerStateChange
+                        'onStateChange': onYouTubePlayerStateChange,
+                        'onPlaybackRateChange': onYouTubePlayerPlaybackRateChange
                     }
                 });
             }
@@ -50,15 +69,29 @@
             function onYouTubePlayerReady(event) {
                 isPlayerReady = true;
 
-                if (typeof loadVideoWhenReady !== 'undefined') {
+                // start playing the video now if we were waiting for the player to load
+                if (loadVideoWhenReady) {
                     startPlayingVideo(loadVideoWhenReady);
-                    delete loadVideoWhenReady;
                 }
             }
 
             function onYouTubePlayerStateChange(event) {
-                console.log('onYouTubePlayerStateChange');
-                console.log(event);
+                // if we were waiting for the player to load, force a quick update now
+                // to flush any remaining changes to the player
+                if (event.data === YT.PlayerState.PLAYING && loadVideoWhenReady) {
+                    updatePlayingVideo(loadVideoWhenReady);
+                    loadVideoWhenReady = null;
+                    return true;
+                }
+
+                socket.emit('updatevideo', {
+                    state: event.data,
+                    time: player.getCurrentTime()
+                });
+            }
+
+            function onYouTubePlayerPlaybackRateChange(event) {
+                socket.emit('updateplaybackrate', event.data);
             }
 
             function startPlayingVideo(videoInformation) {
@@ -69,18 +102,46 @@
                     // set the video title
                     document.getElementById('video-title').innerHTML = videoInformation.title;
 
-                    console.log(videoInformation);
-
                     // load the video
                     player.loadVideoById(videoInformation.id, videoInformation.time, 'default');
+                    player.setPlaybackRate(videoInformation.rate);
                 } else {
                     loadVideoWhenReady = videoInformation;
-                    console.log('waiting for player to be ready...');
+                }
+            }
+
+            function updatePlayingVideo(information) {
+                switch (information.state) {
+                    case YT.PlayerState.PLAYING: {
+                        player.seekTo(information.time, true);
+                        player.playVideo();
+                        break;
+                    }
+
+                    case YT.PlayerState.PAUSED: {
+                        player.pauseVideo();
+                        break;
+                    }
+
+                    case YT.PlayerState.ENDED: {
+                        player.stopVideo();
+                        break;
+                    }
+
+                    case YT.PlayerState.BUFFERING: {
+                        player.seekTo(information.time, true);
+                        break;
+                    }
                 }
             }
 
             socket.on('startvideo', startPlayingVideo);
             socket.on('queuevideo', startPlayingVideo);
+            socket.on('updatevideo', updatePlayingVideo);
+
+            socket.on('updateplaybackrate', function(rate) {
+                player.setPlaybackRate(rate);
+            });
 
             function ajax(url, finished) {
                 const request = new XMLHttpRequest();
@@ -105,8 +166,7 @@
                             'id': url_segments[2], /* TODO: should probably do some more testing to make sure this is correct! */
                             'title': result.title,
                             'url': result.url,
-                            'thumbnail': result.thumbnail_url,
-                            'time': 0
+                            'thumbnail': result.thumbnail_url
                         });
 
                         // reset the input value
