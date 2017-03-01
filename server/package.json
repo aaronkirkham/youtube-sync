@@ -1,0 +1,16 @@
+{
+  "name": "watchyoutubetogether",
+  "version": "1.0.0",
+  "description": "Watch YouTube videos with your friends",
+  "main": "index.js",
+  "dependencies": {
+    "express": "^4.14.1",
+    "socket.io": "^1.7.3"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "node index.js"
+  },
+  "author": "Aaron Kirkham",
+  "license": "ISC"
+}

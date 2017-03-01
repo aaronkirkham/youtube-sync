@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+
+        <title>Watch YouTube Together</title>
+
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,400,700" />
+        <link rel="stylesheet" href="css/style.min.css" />
+    </head>
+    <body>
+        <div class="container">
+            <div class="column">
+                <h1 id="video-title"></h1>
+                <div id="player"></div>
+                <form name="queue-video" onsubmit="queueVideo();return false;">
+                    <input type="text" name="video-url" id="video-url" />
+                    <input type="submit" name="submit" />
+                </form>
+            </div>
+            <div class="column column-half">
+                chat will go here...
+            </div>
+        </div>
+
+        <script src="http://localhost:8080/socket.io/socket.io.js"></script>
+        <script src="https://www.youtube.com/iframe_api" async></script>
+        <script>
+            const socket = io('http://localhost:8080');
+            let player, isPlayerReady = false, loadVideoWhenReady;
+
+            function onYouTubeIframeAPIReady() {
+                player = new YT.Player('player', {
+                    width: 560,
+                    height: 315,
+                    playerVars: {
+                        autohide: true,
+                        autoplay: false,
+                        controls: true,
+                        iv_load_policy: 3,
+                        rel: false
+                    },
+                    events: {
+                        'onReady': onYouTubePlayerReady,
+                        'onStateChange': onYouTubePlayerStateChange
+                    }
+                });
+            }
+
+            function onYouTubePlayerReady(event) {
+                isPlayerReady = true;
+
+                if (typeof loadVideoWhenReady !== 'undefined') {
+                    startPlayingVideo(loadVideoWhenReady);
+                    delete loadVideoWhenReady;
+                }
+            }
+
+            function onYouTubePlayerStateChange(event) {
+                console.log('onYouTubePlayerStateChange');
+                console.log(event);
+            }
+
+            function startPlayingVideo(videoInformation) {
+                if (typeof videoInformation === 'undefined')
+                    return false;
+
+                if (typeof player !== 'undefined' && isPlayerReady) {
+                    // set the video title
+                    document.getElementById('video-title').innerHTML = videoInformation.title;
+
+                    console.log(videoInformation);
+
+                    // load the video
+                    player.loadVideoById(videoInformation.id, videoInformation.time, 'default');
+                } else {
+                    loadVideoWhenReady = videoInformation;
+                    console.log('waiting for player to be ready...');
+                }
+            }
+
+            socket.on('startvideo', startPlayingVideo);
+            socket.on('queuevideo', startPlayingVideo);
+
+            function ajax(url, finished) {
+                const request = new XMLHttpRequest();
+                request.onreadystatechange = function() {
+                    if (request.readyState == 4 && request.status == 200 && typeof finished === 'function')
+                        finished(request);
+                };
+
+                request.open('GET', encodeURI(url), true);
+                request.send();
+            }
+
+            function queueVideo() {
+                const element = document.getElementById('video-url');
+                const url = element.value;
+                const url_segments = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/);
+
+                if (url_segments) {
+                    ajax('https://noembed.com/embed?url=' + url, function(request) {
+                        const result = JSON.parse(request.response);
+                        socket.emit('queuevideo', {
+                            'id': url_segments[2], /* TODO: should probably do some more testing to make sure this is correct! */
+                            'title': result.title,
+                            'url': result.url,
+                            'thumbnail': result.thumbnail_url,
+                            'time': 0
+                        });
+
+                        // reset the input value
+                        element.value = '';
+                    });
+                }
+            }
+        </script>
+    </body>
+</html>
