@@ -18,7 +18,9 @@ io.on('connection', client => {
     player.handleConnect(client);
 
     // Player events
-    client.on('queuevideo', video => player.queueVideo(video));
+    client.on('queuevideo', video => player.queueVideo(client, video));
+    client.on('updatevideo', information => player.stateChanged(client, information));
+    client.on('updateplaybackrate', rate => player.playbackRateChanged(client, rate));
 
     // Socket events
     client.on('disconnect', () => player.handleDisconnect());

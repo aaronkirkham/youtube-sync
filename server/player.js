@@ -15,6 +15,7 @@ class Player {
         this.io = io;
         this.videoInformation = {};
         this.isVideoPlaying = false;
+        this.videoHost = null;
     }
 
     /**
@@ -45,17 +46,48 @@ class Player {
     }
 
     /**
-     * Queue a video for all connected clients
+     * Queue a video for all clients
      *
+     * @param {Object} client - the client socket who sent the request
      * @param {Object} video - video information object
      */
-    queueVideo(video) {
-        this.videoInformation = video;
-        this.videoInformation['time'] = 0;
+    queueVideo(client, video) {
+        this.videoInformation = Object.assign(video, {time: 0, state: -1, rate: 1});
         this.isVideoPlaying = true;
+        this.videoHost = client;
 
         this.io.emit('queuevideo', this.videoInformation);
         console.log(`Video changing to "${this.videoInformation.title}"..`);
+    }
+
+    /**
+     * Fires a state changed event for all clients
+     *
+     * @param {Object} client - the client socket who sent the request
+     * @param {Object} information - information object containing player state and current time
+     */
+    stateChanged(client, information) {
+        // TODO: allow any client to skip etc, but don't keep sending state updates for everyone!
+        // or we'll waste a tonne of bandwidth.
+        if (this.videoHost === client) {
+            this.videoInformation.time = information.time;
+            this.videoInformation.state = information.state;
+            console.log(`state changed to ${information.state}, duration: ${information.time}`);
+            client.broadcast.emit('updatevideo', information);
+        }
+    }
+
+    /**
+     * Changes current video playback rate for all clients
+     *
+     * @param {Object} client - the client socket who sent the request
+     * @param {float} rate - the new rate of the video playback
+     */
+    playbackRateChanged(client, rate) {
+        if (this.videoHost === client) {
+            this.videoInformation = Object.assign(this.videoInformation, {rate: rate});
+            client.broadcast.emit('updateplaybackrate', rate);
+        }
     }
 }
 
