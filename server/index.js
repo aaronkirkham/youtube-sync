@@ -1,6 +1,6 @@
 /**
  * YouTube Player Sync
- * 
+ *
  * index.js
  * Starts socket.io server on port 8080 and waits for connections.
  *
@@ -21,6 +21,7 @@ io.on('connection', client => {
     client.on('queuevideo', video => player.queueVideo(client, video));
     client.on('updatevideo', information => player.stateChanged(client, information));
     client.on('updateplaybackrate', rate => player.playbackRateChanged(client, rate));
+    client.on('syncvideo', information => player.sync(client, information));
 
     // Socket events
     client.on('disconnect', () => player.handleDisconnect());
