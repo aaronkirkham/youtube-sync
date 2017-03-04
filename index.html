@@ -5,7 +5,7 @@
 
         <title>Watch YouTube Together</title>
 
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,400,700" />
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,400,700,900" />
         <link rel="stylesheet" href="css/style.min.css" />
     </head>
     <body>
@@ -15,26 +15,31 @@
             </div>
         </header>
         <section class="main">
-            <div class="container">
-                <div class="row">
-                    <div class="column">
-                        <h1 id="video-title"></h1>
-                        <h2 id="video-subtitle"></h2>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="column">
-                        <div class="player-container">
-                            <div id="player"></div>
-                            <form id="queue-video">
-                                <input type="text" name="video-url" id="video-url" />
-                                <input type="submit" name="submit" />
-                            </form>
+            <div class="start-container row align-center" id="start-container">
+                <a href="#" class="btn green" id="create-a-room">Create a Room</a>
+            </div>
+            <div class="container main-container" id="main-container">
+                <div class="room-container">
+                    <div class="row">
+                        <div class="column">
+                            <h1 id="video-title"></h1>
+                            <h2 id="video-subtitle"></h2>
                         </div>
                     </div>
-                    <div class="column column-half">
-                        <div class="player-container">
-                            chat will go here...
+                    <div class="row">
+                        <div class="column">
+                            <div class="player-container">
+                                <div id="player"></div>
+                                <form id="queue-video">
+                                    <input type="text" name="video-url" id="video-url" />
+                                    <input type="submit" name="submit" />
+                                </form>
+                            </div>
+                        </div>
+                        <div class="column column-half">
+                            <div class="player-container">
+                                chat will go here...
+                            </div>
                         </div>
                     </div>
                 </div>

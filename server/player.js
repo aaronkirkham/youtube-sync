@@ -31,6 +31,9 @@ class Player {
             client.emit('startvideo', this.videoInformation);
             console.log(`sent new user current video information.`);
         }
+
+        // TODO: if we connected to a room which only has the video host connected and the room is hibernating
+        // start the sync interval timers and get out of hibernation mode
     }
 
     /**
@@ -52,6 +55,9 @@ class Player {
 
             console.log(`no clients remaining. cleaned up.`);
         }
+
+        // TODO: if the only client remaining is the host of the video, go into hibernation mode
+        // which will stop all sync interval timers and save a tiny amount of CPU
     }
 
     /**

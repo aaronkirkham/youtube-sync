@@ -1,7 +1,7 @@
 (function () {
-    const socket = io('http://localhost:8080');
     const videoTitle = document.getElementById('video-title');
-    let player;
+    let socket = null;
+    let player = null;
     let isHost = true;
     let isPlayerReady = false;
     let loadVideoWhenReady = null;
@@ -37,6 +37,10 @@
     }
 
     function onYouTubePlayerStateChange(event) {
+        if (typeof io === 'undefined') {
+            return false;
+        }
+
         // if we were waiting for the player to load, force a quick update now
         // to flush any remaining changes to the player
         if (event.data === YT.PlayerState.PLAYING && loadVideoWhenReady) {
@@ -52,11 +56,15 @@
     }
 
     function onYouTubePlayerPlaybackRateChange(event) {
+        if (typeof io === 'undefined') {
+            return false;
+        }
+
         socket.emit('updateplaybackrate', event.data);
     }
 
     function startPlayingVideo(videoInformation) {
-        if (typeof videoInformation === 'undefined')
+        if (typeof io === 'undefined' || typeof videoInformation === 'undefined')
             return false;
 
         if (typeof player !== 'undefined' && isPlayerReady) {
@@ -112,28 +120,37 @@
         }
     }
 
-    socket.on('startvideo', startPlayingVideo);
-    socket.on('queuevideo', startPlayingVideo);
-    socket.on('updatevideo', updatePlayingVideo);
-    socket.on('updateplaybackrate', rate => player.setPlaybackRate(rate));
-    socket.on('syncvideo', information => {
-        console.log(`synced ~${Date.now() - information.pong}ms ago..`);
+    if (typeof io !== 'undefined') {
+        socket = io('http://localhost:8080');
+        socket.on('startvideo', startPlayingVideo);
+        socket.on('queuevideo', startPlayingVideo);
+        socket.on('updatevideo', updatePlayingVideo);
+        socket.on('updateplaybackrate', rate => player.setPlaybackRate(rate));
+        socket.on('syncvideo', information => {
+            console.log(`synced ~${Date.now() - information.pong}ms ago..`);
 
-        // interpolate the player time so we can get as close as possible to the actual syncer
-        // depending on their ping
-        information.time += (Math.abs(Date.now() - information.pong) / 1000);
-        console.log(`interpolated: ${information.time}`);
-        console.log(`player diff: ${information.time - player.getCurrentTime()}`);
+            // interpolate the player time so we can get as close as possible to the actual syncer
+            // depending on their ping
+            information.time += (Math.abs(Date.now() - information.pong) / 1000);
+            console.log(`interpolated: ${information.time}`);
+            console.log(`player diff: ${information.time - player.getCurrentTime()}`);
 
-        if (information.time - player.getCurrentTime() > 0.5) {
-            player.seekTo(information.time);
-            console.log('synced');
-        }
-    });
+            if (information.time - player.getCurrentTime() > 0.5) {
+                player.seekTo(information.time);
+                console.log('synced');
+            }
+        });
+    } else {
+        console.error(`socket.io server is not running.`);
+    }
 
     const form = document.getElementById('queue-video');
     form.addEventListener('submit', e => {
         e.preventDefault();
+
+        if (typeof io === 'undefined') {
+            return false;
+        }
 
         const element = document.getElementById('video-url');
         const url = element.value;
@@ -160,5 +177,18 @@
                 console.log(error);
             });
         }
+    });
+
+    const createRoom = document.getElementById('create-a-room');
+    createRoom.addEventListener('click', e => {
+        e.preventDefault();
+
+        if (typeof io === 'undefined') {
+            //alert(`server is offline.`);
+            //return false;
+        }
+
+        document.getElementById('start-container').classList.add('disabled');
+        document.getElementById('main-container').classList.add('active');
     });
 }());
