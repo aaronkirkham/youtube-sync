@@ -11,8 +11,10 @@
 'use strict';
 
 class Player {
-    constructor(io) {
+    constructor(io, id) {
         this.io = io;
+        this.id = id;
+        this.clients = new Set();
         this.videoInformation = {};
         this.isVideoPlaying = false;
         this.videoHost = null;
@@ -26,6 +28,14 @@ class Player {
      * @param {Object} client - socket.io client object
      */
     handleConnect(client) {
+        this.clients.add(client);
+
+        // player events
+        client.on('queuevideo', video => this.queueVideo(client, video));
+        client.on('updatevideo', information => this.stateChanged(client, information));
+        //client.on('updateplaybackrate', rate => player.playbackRateChanged(client, rate));
+        client.on('syncvideo', information => this.sync(client, information));
+
         // if there's already a video playing, send the new user all the relevant information
         if (this.isVideoPlaying) {
             client.emit('startvideo', this.videoInformation);
@@ -37,12 +47,20 @@ class Player {
     }
 
     /**
-     * Handle a client disconnect.
+     * Reset the player
      *
      */
-    handleDisconnect() {
-        // if there are no users remaining, reset everything
-        if (this.io.engine.clientsCount === 0) {
+    handleDisconnect(client) {
+        // remove player events
+        client.removeAllListeners('startvideo');
+        client.removeAllListeners('updatevideo');
+        client.removeAllListeners('syncvideo');
+
+        // remove the client
+        this.clients.delete(client);
+
+        // is there no one left in the room?
+        if (this.clients.size === 0) {
             this.videoInformation = {};
             this.isVideoPlaying = false;
             this.videoHost = null;
@@ -53,7 +71,7 @@ class Player {
                 this.syncTimer = null;
             }
 
-            console.log(`no clients remaining. cleaned up.`);
+            console.log(`no clients remaining in room '${this.id}'. cleaned up.`);
         }
 
         // TODO: if the only client remaining is the host of the video, go into hibernation mode

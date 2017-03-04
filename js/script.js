@@ -190,5 +190,8 @@
 
         document.getElementById('start-container').classList.add('disabled');
         document.getElementById('main-container').classList.add('active');
+
+        // temp
+        socket.emit('joinroom', 'testing123');
     });
 }());
