@@ -47,7 +47,7 @@ class Player {
     }
 
     /**
-     * Reset the player
+     * Handle a client disconnect.
      *
      */
     handleDisconnect(client) {
