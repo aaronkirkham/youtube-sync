@@ -6,28 +6,31 @@
 
 // Project configuration
 const settings = {
+    // General settings
     project: 'watchyoutubetogether',
-    url: '',
+
+    // Browser sync settings
     sync: {
         proxy: 'http://localhost/watchyoutubetogether',
         port: 8079,
+        // Files which should trigger a browser sync reload
         files: [
             '**/*.html',
             '**/*.php',
-            '**/*.{png,jpg,gif}'
+            '**/*.{png,jpg,gif}',
         ]
     },
-    build: [
-        '**/*.php',
-        '**/*.html',
-        '**/*.css',
-        '**/*.js'
-    ]
-}
+
+    // Build settings
+    build: {
+        path: './assets/',
+    },
+};
 
 // Gulp
 const gulp = require('gulp');
 const browserSync = require('browser-sync');
+const plumber = require('gulp-plumber');
 const sass = require('gulp-sass');
 const autoprefixer = require('gulp-autoprefixer');
 const minifycss = require('gulp-uglifycss');
@@ -56,18 +59,20 @@ gulp.task('browser-sync', () => {
  *
  */
 gulp.task('styles', () => {
-    return gulp.src('./assets/css/src/*.scss')
+    return gulp.src('./src/css/*.scss')
+        .pipe(plumber())
         .pipe(sass({
             errLogToConsole: true,
             outputStyle: 'compact',
-            precision: 10
-        }))
+            precision: 10,
+        }).on('error', sass.logError))
         .pipe(autoprefixer('last 2 version', '> 1%', 'safari 5', 'ie 8', 'ie 9', 'opera 12.1', 'ios 6', 'android 4'))
+        .pipe(plumber.stop())
         .pipe(rename({
-            suffix: '.min'
+            suffix: '.min',
         }))
         .pipe(minifycss())
-        .pipe(gulp.dest('./assets/css'))
+        .pipe(gulp.dest(`${settings.build.path}/css`))
         .pipe(browserSync.stream());
 });
 
@@ -77,15 +82,15 @@ gulp.task('styles', () => {
  * Look at src/js/vendor and concatenate those files, send them to assets/js and minify the output.
  */
 gulp.task('vendorJs', () => {
-    return gulp.src('./assets/js/src/vendor/*.js')
+    return gulp.src('./src/js/vendor/*.js')
         .pipe(concat('vendors.js'))
         .pipe(gulp.dest('./assets/js'))
         .pipe(rename({
             basename: 'vendors',
-            suffix: '.min'
+            suffix: '.min',
         }))
         .pipe(uglify())
-        .pipe(gulp.dest('./assets/js'));
+        .pipe(gulp.dest(`${settings.build.path}/js`));
 });
 
 /**
@@ -94,15 +99,15 @@ gulp.task('vendorJs', () => {
  * Look at src/js and concatenate those files, send them to assets/js and minify the output.
  */
 gulp.task('scriptsJs', () => {
-    return gulp.src('./assets/js/src/*.js')
+    return gulp.src('./src/js/*.js')
         .pipe(babel({
-            presets: ['es2015']
+            presets: ['es2015'],
         }))
         .pipe(rename({
-            suffix: '.min'
+            suffix: '.min',
         }))
         .pipe(uglify())
-        .pipe(gulp.dest('./assets/js'));
+        .pipe(gulp.dest(`${settings.build.path}/js`));
 });
 
 /**
@@ -114,6 +119,9 @@ gulp.task('js-watch', ['scriptsJs'], browserSync.reload);
 
 // Watch task
 gulp.task('default', ['styles', 'vendorJs', 'scriptsJs', 'browser-sync'], () => {
-    gulp.watch('./assets/css/**/*.scss', ['styles']);
-    gulp.watch('./assets/js/**/*.js', ['js-watch']);
+    gulp.watch('./src/css/**/*.scss', ['styles']);
+    gulp.watch('./src/js/**/*.js', ['js-watch']);
 });
+
+// Build task
+gulp.task('build', ['styles', 'vendorJs', 'scriptsJs']);

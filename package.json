@@ -4,7 +4,8 @@
   "description": "Watch YouTube videos with your friends",
   "main": "gulpfile.js",
   "scripts": {
-    "test": "gulp"
+    "dev": "gulp",
+    "build": "gulp build"
   },
   "repository": {
     "type": "git",
@@ -23,6 +24,7 @@
     "gulp-autoprefixer": "^3.1.1",
     "gulp-babel": "^6.1.2",
     "gulp-concat": "^2.6.1",
+    "gulp-plumber": "^1.1.0",
     "gulp-rename": "^1.2.2",
     "gulp-sass": "^3.1.0",
     "gulp-uglify": "^2.0.1",
