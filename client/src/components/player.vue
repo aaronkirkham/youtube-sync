@@ -60,10 +60,16 @@
       player: {
         obj: null,
         is_ready: false,
+        is_paused: false,
       },
       playing: null,
+      play_when_ready: null,
       queue: [],
-      video_to_queue: 'https://www.youtube.com/watch?v=tEcggRukZCs',
+      video_to_queue: 'https://www.youtube.com/watch?v=oySqE3z99AE',
+      clock: {
+        timer: null,
+        resolution: 3000, // sync the clocks every 3 seconds
+      },
     }),
     created() {
       const script = document.createElement('script');
@@ -73,21 +79,41 @@
       document.head.appendChild(script);
     },
     mounted() {
-      // server related events
-      this.$root.$on('server_play_video', video => {
-        console.log('server requested video', video.title);
-
-        this.playing = video;
-
-        // load the video
-        this.player.obj.loadVideoById(video.id, 0, 'default');
-
-        // update the window title
-        document.title = `${video.title} - YouTube Sync`;
+      this.$root.$on('server_play_video', video => this.playVideo(video));
+      this.$root.$on('server_add_to_queue', video => this.queue.push(video));
+      this.$root.$on('server_remove_from_queue', data => this.queue = this.queue.filter(video => video.id !== data.id));
+      this.$root.$on('server_update_room_info', data => {
+        this.playVideo(data.playing);
+        this.queue = data.queue;
       });
 
-      this.$root.$on('server_add_to_queue', video => this.queue.push(video));
-      this.$root.$on('server_remove_from_queue', id => this.queue = this.queue.filter(video => video.id !== id));
+      this.$root.$on('server_update_state', data => this.updatePlayerState(data.state));
+
+      this.$root.$on('server_update_clock', data => {
+        console.log('server_update_clock', data);
+
+        if (this.playing.id === data.id) {
+          if (data.timestamp && data.timestamp !== 0) {
+            console.log(`synced ~${Date.now() - data.timestamp}ms ago...`);
+
+            // extrapolate the player time to compensate for the ping
+            data.time += (Math.abs(Date.now() - data.timestamp) / 1000);
+            console.log(` - extrapolated: ${data.time}`);
+            console.log(` - error: ${data.time - this.player.obj.getCurrentTime()}`);
+
+            if ((data.time - this.player.obj.getCurrentTime()) > 0.5) {
+              this.player.obj.seekTo(data.time, true);
+              console.log('synced player');
+            }
+          }
+          else {
+            this.player.obj.seekTo(data.time, true);
+          }
+        }
+        else {
+          console.warn('got clock update for a different video!', data.id, this.playing.id);
+        }
+      })
 
       // youtube iframe ready
       window.onYouTubeIframeAPIReady = () => {
@@ -109,31 +135,88 @@
       };
     },
     methods: {
+      playVideo(video) {
+        if (video && this.player.is_ready) {
+          console.log('playing video', video);
+
+          this.player.obj.loadVideoById(video.id, video.time ? video.time : 0, 'default');
+          this.playing = video;
+          this.play_when_ready = null;
+          document.title = `${video.title} - YouTube Sync`;
+
+          // set the playback rate if we need to
+          if (typeof video.rate !== 'undefined') {
+            console.log('updating playback rate to', video.rate);
+            this.player.obj.setPlaybackRate(video.rate);
+          }
+
+          // are we the host of this room?
+          if (this.is_host) {
+            if (this.clock.timer) {
+              clearInterval(this.clock.timer);
+            }
+
+            // start the clock to sync the video
+            this.clock.timer = setInterval(() => {
+              if (!this.player.is_paused) {
+                this.$root.$emit('send', {
+                  type: 'update_clock',
+                  id: this.playing.id,
+                  time: this.player.obj.getCurrentTime(),
+                  timestamp: Date.now()
+                });
+              }
+            }, this.clock.resolution);
+          }
+        }
+        else if (video && !this.player.is_ready) {
+          console.warn('video will start when player is loaded...');
+          this.play_when_ready = video;
+        }
+      },
       playerReady(event) {
         console.log('PlayerReady');
         
         this.player.is_ready = true;
+
+        // do we have a video ready to play?
+        if (this.play_when_ready) {
+         this.playVideo(this.play_when_ready);
+        }
       },
       playerStateChange(event) {
-        console.log('PlayerStateChange', event);
+        // if we're not the host and the video has started playing, update the states if we need to
+        if (!this.is_host && event.data === YT.PlayerState.PLAYING) {
+          console.log('playing (state change):', this.playing);
 
-        // has the current video playing ended?
-        if (event.data === YT.PlayerState.ENDED && this.is_host && this.playing) {
-          this.$root.$emit('send', { type: 'video_ended' });
-          return true;
+          if (typeof this.playing.state !== 'undefined' && this.playing.state !== YT.PlayerState.PLAYING) {
+            this.updatePlayerState(this.playing.state);
+          }
         }
 
-        // are we sat waiting for the iframe to load?
-        if (event.data === YT.PlayerState.PLAYING && false) {
-          // TODO
-          return true;
+        // don't continue below unless we're the host and we're actually playing a video
+        if (!this.is_host || !this.playing || event.data === YT.PlayerState.BUFFERING) {
+          return false;
         }
 
-        this.$root.$emit('send', {
-          type: 'update_video',
-          state: event.data,
-          time: this.player.obj.getCurrentTime()
-        });
+        console.log('PlayerStateChange', event.data);
+
+        switch (event.data) {
+          case YT.PlayerState.PLAYING: {
+            this.$root.$emit('send', { type: 'update_video', state: YT.PlayerState.PLAYING, time: this.player.obj.getCurrentTime(), timestamp: Date.now() });
+            break;
+          }
+
+          case YT.PlayerState.PAUSED: {
+            this.$root.$emit('send', { type: 'update_video', state: YT.PlayerState.PAUSED, time: this.player.obj.getCurrentTime(), timestamp: 0 });
+            break;
+          }
+
+          case YT.PlayerState.ENDED: {
+            this.$root.$emit('send', { type: 'update_video', state: YT.PlayerState.ENDED, time: 0, timestamp: 0 });
+            break;
+          }
+        }
       },
       playerPlaybackRateChange(event) {
         console.log('PlayerPlaybackRateChange');
@@ -164,6 +247,38 @@
             });
           })
           .catch(err => console.error(err));
+      },
+      updatePlayerState(state) {
+        if (!this.player.is_ready) {
+          console.error(`player isn't ready yet!`);
+        }
+
+        this.playing.state = state;
+        
+        switch (state) {
+          case YT.PlayerState.PLAYING: {
+            if (this.player.is_paused) {
+              this.player.obj.playVideo();
+              this.player.is_paused = false;
+            }
+
+            break;
+          }
+
+          case YT.PlayerState.PAUSED: {
+            if (!this.player.is_paused) {
+              this.player.obj.pauseVideo();
+              this.player.is_paused = true;
+            }
+
+            break;
+          }
+
+          case YT.PlayerState.ENDED: {
+            this.player.obj.stopVideo();
+            break;
+          }
+        }
       }
     },
     computed: {
