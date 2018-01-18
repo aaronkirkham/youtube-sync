@@ -38,3 +38,4 @@ jspm_packages
 
 #
 client/dist
+client/package-lock.json

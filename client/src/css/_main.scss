@@ -1,0 +1,23 @@
+body {
+  background-color: #172737;
+  font-family: "soleil", sans-serif;
+  font-weight: 400;
+  color: #ffffff;
+}
+
+.text-align {
+  &--left {
+    text-align: left !important;
+    text-align-last: left !important;
+  }
+
+  &--center {
+    text-align: center !important;
+    text-align-last: center !important;
+  }
+
+  &--right {
+    text-align: right !important;
+    text-align-last: right !important;
+  }
+}

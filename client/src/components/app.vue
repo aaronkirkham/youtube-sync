@@ -1,11 +1,20 @@
 <template>
   <div id="app">
-    <h1>YouTube Sync</h1>
-    <youtube-player></youtube-player>
+    <header class="primary-header" role="banner">
+      <div class="container">
+        <h1 class="logo">YouTube Sync</h1>
+      </div>
+    </header>
+    <main class="primary-main" role="main">
+      <div class="container">
+        <youtube-player></youtube-player>
+      </div>
+    </main>
   </div>
 </template>
 
 <script>
+  import store from '../store';
   import io from 'socket.io-client';
   import YouTubePlayer from './player.vue';
 
@@ -16,17 +25,13 @@
       socket: null,
     }),
     mounted() {
-      this.socket = io('http://localhost:8888');
+      this.socket = io('http://localhost:8888'); // { reconnection: false, reconnectionDelay: 5000 });
+      //this.socket.on('connect_error', () => console.log('failed to connect to the server!'));
 
-      // register client events
-      //this.$on('send_queue_video', data => this.socket.emit('client_queue_video', data));
-      //this.$on('send_update_video', data => this.socket.emit(`client_update_video_${data.type}`, data));
+      // register send/receive events
       this.$on('send', data => this.socket.emit(`client_${data.type}`, data));
-
-      // register server events
-      //this.socket.on('server_play_video', data => this.$emit('server_play_video', data));
-      //this.socket.on('server_update_video', data => this.$emit('server_update_video', data));
       this.socket.on('recv', data => this.$emit(`server_${data.type}`, data));
+      this.$on('server_im_the_host', () => store.commit('IM_THE_HOST', true));
 
       // TEMP: join the dev room
       this.socket.emit('room_join', 'dev');
