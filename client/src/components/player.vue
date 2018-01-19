@@ -34,16 +34,11 @@
       <!-- sidebar -->
       <div class="col-4">
         <ul class="player__queue-container">
-          <h3 class="player__queue-title">Videos Queued ({{ queue.length }})</h3>
           <li v-for="video in queue" v-bind:key="video.id" class="player__queue-item">
-            <div class="grid align-center">
-              <div class="col-3">
-                <img v-bind:src="video.thumbnail" class="player__queue-item-thumbnail" />
-              </div>
-              <div class="col-auto">
-                <p class="player__queue-item-title">{{ video.title }}</p>
-              </div>
+            <div class="player__queue-item-thumbnail-container">
+              <img v-bind:src="video.thumbnail" class="player__queue-item-thumbnail" />
             </div>
+            <p class="player__queue-item-title">{{ video.title }}</p>
           </li>
         </ul>
       </div>
@@ -77,6 +72,14 @@
       script.setAttribute('src', 'https://youtube.com/iframe_api');
 
       document.head.appendChild(script);
+
+      for (let i = 0; i < 5; i++) {
+        this.queue.push({
+          id: '8GW6sLrK40k',
+          title: 'HOME - Resonance',
+          thumbnail: 'https://i.ytimg.com/vi/8GW6sLrK40k/hqdefault.jpg'
+        });
+      }
     },
     mounted() {
       this.$root.$on('server_play_video', video => this.playVideo(video));

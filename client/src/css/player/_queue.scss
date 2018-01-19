@@ -1,26 +1,46 @@
 .player {
-  &__queue-title {
-    margin-bottom: 10px;
-  }
+  $this: &;
 
   &__queue-container {
-    height: 100%;
-    padding: 15px;
-    background: rgba(0, 0, 0, 0.25);
-    overflow-y: overlay;
+    &:hover {
+      #{$this} {
+        &__queue-item {
+          opacity: 0.5;
+        }
+      }
+    }
   }
 
   &__queue-item {
+    font-size: 14px;
     padding: 10px;
-    background-color: rgba(0, 0, 0, 0.25);
-    border: 1px solid rgba(0, 0, 0, 0.75);
+    height: 100px;
+    background: rgba(255, 255, 255, 0.10);
+    cursor: pointer;
+    transition: all 80ms linear;
 
     &:not(:last-child) {
-      margin-bottom: 5px;
+      margin-bottom: 10px;
+    }
+
+    &:hover {
+      background: #506472;
+      box-shadow: 0px 4px 4px 0 rgba(0, 0, 0, 0.35);
+      opacity: 1 !important;
+    }
+
+    &-thumbnail-container {
+      float: left;
+      width: 153px;
+      height: 80px;
+      overflow: hidden;
+      padding-right: 10px;
     }
 
     &-thumbnail {
-      max-width: 100%;
+      width: inherit;
+      height: inherit;
+      object-fit: cover;
     }
   }
 }
