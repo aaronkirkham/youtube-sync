@@ -73,13 +73,13 @@
 
       document.head.appendChild(script);
 
-      for (let i = 0; i < 5; i++) {
-        this.queue.push({
-          id: '8GW6sLrK40k',
-          title: 'HOME - Resonance',
-          thumbnail: 'https://i.ytimg.com/vi/8GW6sLrK40k/hqdefault.jpg'
-        });
-      }
+      // for (let i = 0; i < 5; i++) {
+      //   this.queue.push({
+      //     id: '8GW6sLrK40k',
+      //     title: 'HOME - Resonance',
+      //     thumbnail: 'https://i.ytimg.com/vi/8GW6sLrK40k/hqdefault.jpg'
+      //   });
+      // }
     },
     mounted() {
       this.$root.$on('server_play_video', video => this.playVideo(video));
