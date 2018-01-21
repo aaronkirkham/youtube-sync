@@ -1,8 +1,9 @@
 "use strict";
 
 class Video {
-  constructor({id, title, thumbnail}) {
-    this.id = id;
+  constructor({video_id, title, thumbnail}) {
+    this.id = Date.now();
+    this.video_id = video_id;
     this.title = title;
     this.thumbnail = thumbnail;
     this.state = 0;
@@ -12,7 +13,7 @@ class Video {
   }
 
   data() {
-    return { id: this.id, title: this.title, thumbnail: this.thumbnail };
+    return { id: this.id, video_id: this.video_id, title: this.title, thumbnail: this.thumbnail };
   }
 
   extdata() {
@@ -74,9 +75,11 @@ class Room {
 
     // register the player events
     client.on('client_queue_video', data => this.queueVideo(client, data));
+    client.on('client_unqueue_video', data => this.unqueueVideo(client, data));
     client.on('client_update_video', data => this.updateVideo(client, data));
     client.on('client_update_video_playback_rate', rate => this.updateVideoPlaybackRate(client, rate));
     client.on('client_update_clock', data => this.updateClock(client, data));
+    client.on('client_change_video', data => this.changeVideo(client, data));
 
     // send the current room state to the client
     const update_room_info = { playing: this.playing ? this.playing.extdata() : null, queue: [] };
@@ -89,9 +92,11 @@ class Room {
    */
   disconnect(client) {
     client.removeAllListeners('client_queue_video');
+    client.removeAllListeners('client_unqueue_video');
     client.removeAllListeners('client_update_video');
     client.removeAllListeners('client_update_video_playback_rate');
     client.removeAllListeners('client_update_clock');
+    client.removeAllListeners('client_change_video');
 
     // remove the client from the room
     this.clients.delete(client);
@@ -123,12 +128,43 @@ class Room {
   }
 
   /**
+   * Unqueue a video
+   */
+  unqueueVideo(client, data) {
+    // TODO: PERMISSIONS
+
+    this.queue.forEach(video => {
+      if (video.id === data.id) {
+        this.queue.delete(video);
+        this.parent.io.emit('recv', { type: 'remove_from_queue', id: video.id });
+      }
+    });
+  }
+
+  /**
+   * Change a video
+   */
+  changeVideo(client, data) {
+    // TODO: PERMISSIONS
+
+    this.queue.forEach(video => {
+      if (video.id === data.id) {
+        this.queue.delete(video);
+
+        this.playing = video;
+        this.parent.io.emit('recv', { type: 'remove_from_queue', id: video.id });
+        this.parent.io.emit('recv', { type: 'play_video', ...video.data() });
+      }
+    });
+  }
+
+  /**
    * Update video
    */
   updateVideo(client, data) {
-    if (client !== this.host) {
-      return;
-    }
+    // if (client !== this.host) {
+    //   return;
+    // }
 
     if (this.playing) {
       this.playing.setState(data.state);
@@ -181,9 +217,9 @@ class Room {
    * Update video playback rate
    */
   updateVideoPlaybackRate(client, data) {
-    if (client !== this.host) {
-      return;
-    }
+    // if (client !== this.host) {
+    //   return;
+    // }
 
     if (this.playing) {
       this.playing.setPlaybackRate(data.rate);

@@ -1,33 +1,62 @@
+.sortable-chosen,
+.dragging {
+  * {
+    cursor: grabbing !important;
+    cursor: -webkit-grabbing !important;
+    cursor: -moz-grabbing !important;
+  }
+}
+
+.sortable-ghost {
+  opacity: 0;
+}
+
 .player {
   $this: &;
 
   &__queue-container {
-    &:hover {
+    margin-top: -5px;
+
+    &:not(.dragging):not(.sortable-chosen) {
       #{$this} {
         &__queue-item {
-          opacity: 0.5;
+          &:hover {
+            //background: #506472;
+            box-shadow: 0px 4px 4px 0 rgba(0, 0, 0, 0.20);
+
+            #{$this} {
+              &__queue-item-actions {
+                opacity: 1;
+                visibility: visible;
+              }
+
+              &__queue-item-remove {
+                opacity: 1;
+                visibility: visible;
+              }
+            }
+          }
         }
       }
     }
   }
 
+  &__queue-item-container {
+    padding: 5px 0;
+    user-select: none;
+  }
+
   &__queue-item {
-    font-size: 14px;
+    position: relative;
+    font-size: 15px;
     padding: 10px;
     height: 100px;
     background: rgba(255, 255, 255, 0.10);
-    cursor: pointer;
-    transition: all 80ms linear;
-
-    &:not(:last-child) {
-      margin-bottom: 10px;
-    }
-
-    &:hover {
-      background: #506472;
-      box-shadow: 0px 4px 4px 0 rgba(0, 0, 0, 0.35);
-      opacity: 1 !important;
-    }
+    transition: all $transition-time $transition-style;
+    cursor: move;
+    cursor: -webkit-grab;
+    cursor: -moz-grab;
+    cursor: grab;
 
     &-thumbnail-container {
       float: left;
@@ -41,6 +70,48 @@
       width: inherit;
       height: inherit;
       object-fit: cover;
+    }
+
+    &-actions {
+      opacity: 0;
+      visibility: hidden;
+      transition: all $transition-time $transition-style;
+    }
+
+    &-remove {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      cursor: pointer;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity $transition-time $transition-style, visibility $transition-time $transition-style;
+
+      &:hover {
+        svg {
+          stroke: #ffffff;
+        }
+      }
+
+      svg {
+        stroke: rgba(255, 255, 255, 0.35);
+        transition: stroke $transition-time linear;
+      }
+    }
+  }
+
+  &__queue-no-items {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    font-size: 24px;
+    color: rgba(255, 255, 255, 0.5);
+
+    svg {
+      fill: rgba(255, 255, 255, 0.5);
+      margin-bottom: 25px;
     }
   }
 }

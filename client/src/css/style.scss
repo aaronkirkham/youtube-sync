@@ -4,6 +4,12 @@
   padding: 0;
 }
 
+// variables
+$default-font: 'PT Sans', sans-serif;
+$default-weight: 700;
+$transition-time: 80ms;
+$transition-style: linear;
+
 @import 'reset';
 @import 'vendor/reflex/scss/reflex';
 @import 'main';

@@ -4,7 +4,7 @@
   "description": "Sync youtube video playback between multiple clients.",
   "main": "index.js",
   "scripts": {
-    "start": "webpack-dev-server --config webpack.js",
+    "start": "webpack-dev-server --config webpack.js --host 0.0.0.0",
     "build": "webpack --config webpack.js"
   },
   "repository": {
@@ -34,6 +34,7 @@
   "dependencies": {
     "socket.io": "^2.0.4",
     "vue": "^2.5.13",
+    "vuedraggable": "^2.16.0",
     "vuex": "^3.0.1"
   }
 }

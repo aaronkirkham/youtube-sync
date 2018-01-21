@@ -1,9 +1,44 @@
 .input {
-  font-family: "Fira Sans", sans-serif;
+  font-family: $default-font;
   font-size: 14px;
-  font-weight: 400;
+  font-weight: $default-weight;
   width: 100%;
   padding: 8px 15px;
   border: none;
   outline: none;
+}
+
+.button {
+  font-family: $default-font;
+  font-size: 14px;
+  font-weight: $default-weight;
+  line-height: 15px;
+  padding: 6px 15px 5px;
+  background-color: transparent;
+  border: none;
+  outline: none;
+  text-transform: uppercase;
+
+  &--no-native {
+    border: none;
+    outline: none;
+    background: none;
+    padding: 0;
+  }
+
+  &--icon {
+    $icon-size: 14px;
+
+    position: relative;
+    padding-left: ($icon-size + 20px);
+
+    svg {
+      position: absolute;
+      top: 50%;
+      left: 15px;
+      width: $icon-size;
+      height: $icon-size;
+      margin-top: -($icon-size / 2);
+    }
+  }
 }
