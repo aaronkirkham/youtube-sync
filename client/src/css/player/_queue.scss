@@ -8,8 +8,19 @@
 }
 
 .sortable-ghost {
-  opacity: 0;
+  .player__queue-item {
+    background-color: rgba(0, 0, 0, 0.2);
+
+    > * {
+      display: none;
+    }
+  }
 }
+
+// .sortable-chosen:not(.sortable-ghost) {
+//   .player__queue-item {
+//   }
+// }
 
 .player {
   $this: &;
