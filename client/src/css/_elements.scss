@@ -1,12 +1,61 @@
-.input {
-  font-family: $default-font;
-  font-size: 14px;
-  font-weight: $default-weight;
-  width: 100%;
-  padding: 8px 15px;
-  border: none;
-  outline: none;
+.style-input {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  background-color: rgba(57, 63, 84, 0.8);
+  border-radius: 2px;
+  padding: 1.4rem 2rem 1.6rem;
+
+  &::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2px;
+    background-position: 0% 0%;
+    background: linear-gradient(to right, #B294FF, #57E6E6, #FEFFB8, #57E6E6, #B294FF, #57E6E6);
+    background-size: 500% auto;
+    // animation: move-gradient 3s linear infinite;
+  }
+
+  .input {
+    font-family: $default-font;
+    font-weight: bold;
+    background: none;
+    border: none;
+    outline: none;
+    padding: 0;
+    flex-grow: 1;
+    color: #bfd2ff;
+    font-size: 1.6rem;
+    line-height: 2.2rem;
+    
+    &::-webkit-input-placeholder {
+      color: #7881a1;
+    }
+  }
+
+  .button {
+    color: #7881a1;
+    transition: color 250ms linear;
+    cursor: pointer;
+
+    &:hover {
+      color: #bfd2ff;
+    }
+  }
 }
+
+// .input {
+//   font-family: $default-font;
+//   font-size: 14px;
+//   font-weight: $default-weight;
+//   width: 100%;
+//   padding: 8px 15px;
+//   border: none;
+//   outline: none;
+// }
 
 .button {
   font-family: $default-font;
@@ -41,4 +90,9 @@
       margin-top: -($icon-size / 2);
     }
   }
+}
+
+@keyframes move-gradient {
+  0% { background-position: 0 0; }
+  100% { background-position: 100% 0; }
 }

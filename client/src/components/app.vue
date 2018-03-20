@@ -26,15 +26,25 @@
     }),
     mounted() {
       this.socket = io('http://localhost:8888'); // { reconnection: false, reconnectionDelay: 5000 });
-      //this.socket.on('connect_error', () => console.log('failed to connect to the server!'));
+      this.socket.on('connect_error', () => console.log('failed to connect to the server!'));
 
       // register send/receive events
       this.$on('send', data => this.socket.emit(`client_${data.type}`, data));
       this.socket.on('recv', data => this.$emit(`server_${data.type}`, data));
       this.$on('server_im_the_host', () => store.commit('IM_THE_HOST', true));
+      this.$on('server_update_url', data => {
+        //const url = `${window.location.origin}/${data.id}/`;
+        const url = `${window.location.origin}/?room=${data.id}`;
+        window.history.pushState({
+          href: url
+        }, null, url);
+      });
 
       // TEMP: join the dev room
-      this.socket.emit('room_join', 'dev');
+      //this.socket.emit('room_join', 'dev');
+    },
+    computed: {
+      is_online: () => store.state.is_online,
     },
   };
 </script>

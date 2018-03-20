@@ -1,4 +1,5 @@
 html, body {
+  font-size: 10px;
   height: 100vh;
 }
 
@@ -6,7 +7,7 @@ body {
   font-family: $default-font;
   font-weight: $default-weight;
   color: #ffffff;
-  background: radial-gradient(circle at 50% 53%, #4d6570, #243238);
+  background-image: radial-gradient(circle at 0% 0%, #373b52, #252736 51%, #1d1e26);
   -webkit-font-smoothing: antialiased;
 }
 

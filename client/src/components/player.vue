@@ -22,13 +22,9 @@
           </div>
         </div>-->
         <!-- queue video controls -->
-        <div class="grid player__controls">
-          <div class="col-10">
-            <input type="input" class="input" placeholder="Paste a YouTube URL..." v-model="video_to_queue" />
-          </div>
-          <div class="col-2">
-            <input type="submit" @click="requestVideo()" />
-          </div>
+        <div class="style-input">
+          <input type="text" class="input" placeholder="Paste a YouTube URL..." v-model="video_to_queue" @keyup.enter="requestVideo()" />
+          <button type="submit" class="button" @click="requestVideo()">Queue</button>
         </div>
       </div>
       <!-- sidebar -->
@@ -138,7 +134,7 @@
           height: 315,
           playerVars: {
             'autoplay': 0, // don't start playing the media automatically
-            'controls': 1, // show the player default c#ontrols
+            'controls': 1, // show the player default controls
             'iv_load_policy': 3, // don't show any video annotations
             'rel': 0, // don't show any related videos
           },
@@ -243,10 +239,25 @@
         });
       },
       requestVideo() {
-        console.log('requesting video', this.video_to_queue);
+        // make sure we have something to queue
+        if (!this.video_to_queue) {
+          return;
+        }
 
         // make sure the input url is valid
         const url_segments = this.video_to_queue.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/);
+        if (url_segments === null) {
+          // TODO: error?
+          return;
+        }
+
+        // make sure we have a valid id in the video url
+        if (typeof url_segments[2] !== 'undefined' && url_segments[2].length === 0) {
+          // TODO: error?
+          return;
+        }
+
+        console.log('requesting video', this.video_to_queue);
 
         // fetch some basic information about the video
         fetch(`https://noembed.com/embed?url=${this.video_to_queue}`, { method: 'get' })
@@ -261,6 +272,8 @@
               url: data.url,
               thumbnail: data.thumbnail_url,
             });
+
+            this.video_to_queue = '';
           })
           .catch(err => console.error(err));
       },
