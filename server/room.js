@@ -64,7 +64,7 @@ class Room {
         if (this.playing && this.playing.state === 1) {
           this.clients.forEach(client => {
             if (client !== this.host) {
-              client.emit('recv', { type: 'update_clock', id: this.playing.id, time: this.playing.current_time, timestamp: this.playing.clock_time });
+              client.emit('recv', { type: 'video--clock', id: this.playing.id, time: this.playing.current_time, timestamp: this.playing.clock_time });
             }
           });
         }
@@ -73,30 +73,28 @@ class Room {
 
     this.clients.add(client);
 
-    // register the player events
-    client.on('client_queue_video', data => this.queueVideo(client, data));
-    client.on('client_unqueue_video', data => this.unqueueVideo(client, data));
-    client.on('client_update_video', data => this.updateVideo(client, data));
-    client.on('client_update_video_playback_rate', rate => this.updateVideoPlaybackRate(client, rate));
-    client.on('client_update_clock', data => this.updateClock(client, data));
-    client.on('client_change_video', data => this.changeVideo(client, data));
+    // register the socket events
+    this.on(client, 'queue--add', data => this.queueVideo(client, data));
+    this.on(client, 'queue--remove', data => this.unqueueVideo(client, data));
+    this.on(client, 'video--change', data => this.changeVideo(client, data));
+    this.on(client, 'video--update', data => this.updateVideo(client, data));
+    this.on(client, 'video--playback-rate', data => this.updateVideoPlaybackRate(client, data));
+    this.on(client, 'video--clock', data => this.updateClock(client, data));
 
     // send the current room state to the client
     const update_room_info = { playing: this.playing ? this.playing.extdata() : null, queue: [] };
     this.queue.forEach(video => update_room_info.queue.push(video.data()));
-    client.emit('recv', { type: 'update_room_info', ...update_room_info });
+    client.emit('recv', { type: 'room--update', ...update_room_info });
   }
 
   /**
    * Handle a client disconnecting
    */
   disconnect(client) {
-    client.removeAllListeners('client_queue_video');
-    client.removeAllListeners('client_unqueue_video');
-    client.removeAllListeners('client_update_video');
-    client.removeAllListeners('client_update_video_playback_rate');
-    client.removeAllListeners('client_update_clock');
-    client.removeAllListeners('client_change_video');
+    // remove all the event listeners
+    for (const event in client._events) {
+      client.removeListener(event, client._events[event]);
+    }
 
     // remove the client from the room
     this.clients.delete(client);
@@ -119,11 +117,11 @@ class Room {
     // do we already have a video playing?
     if (this.playing) {
       this.queue.add(video);
-      this.parent.io.emit('recv', { type: 'add_to_queue', ...video.data() });
+      this.parent.io.emit('recv', { type: 'queue--add', ...video.data() });
     }
     else {
       this.playing = video;
-      this.parent.io.emit('recv', { type: 'play_video', ...video.data() });
+      this.parent.io.emit('recv', { type: 'video--play', ...video.data() });
     }
   }
 
@@ -136,7 +134,7 @@ class Room {
     this.queue.forEach(video => {
       if (video.id === data.id) {
         this.queue.delete(video);
-        this.parent.io.emit('recv', { type: 'remove_from_queue', id: video.id });
+        this.parent.io.emit('recv', { type: 'queue--remove', id: video.id });
       }
     });
   }
@@ -152,8 +150,8 @@ class Room {
         this.queue.delete(video);
 
         this.playing = video;
-        this.parent.io.emit('recv', { type: 'remove_from_queue', id: video.id });
-        this.parent.io.emit('recv', { type: 'play_video', ...video.data() });
+        this.parent.io.emit('recv', { type: 'queue--remove', id: video.id });
+        this.parent.io.emit('recv', { type: 'video--play', ...video.data() });
       }
     });
   }
@@ -206,8 +204,8 @@ class Room {
       // update the clients immediately
       this.clients.forEach(client => {
         if (client !== this.host) {
-          client.emit('recv', { type: 'update_state', id: this.playing.id, state: this.playing.state });
-          client.emit('recv', { type: 'update_clock', id: this.playing.id, time: data.time, timestamp: data.timestamp });
+          client.emit('recv', { type: 'video--state', id: this.playing.id, state: this.playing.state });
+          client.emit('recv', { type: 'video--clock', id: this.playing.id, time: data.time, timestamp: data.timestamp });
         }
       });
     }
@@ -242,8 +240,8 @@ class Room {
       this.queue.delete(next);
 
       this.playing = next;
-      this.parent.io.emit('recv', { type: 'remove_from_queue', id: next.id });
-      this.parent.io.emit('recv', { type: 'play_video', ...next.data() });
+      this.parent.io.emit('recv', { type: 'queue--remove', id: next.id });
+      this.parent.io.emit('recv', { type: 'video--play', ...next.data() });
     }
   }
 
@@ -264,6 +262,13 @@ class Room {
     else {
       console.warn('got a clock update for a different video', data.id, this.playing.id);
     }
+  }
+
+  /**
+   * Helper function to register events for clients
+   */
+  on(client, event, cb) {
+    return client.on(`client__${event}`, cb);
   }
 };
 

@@ -1,9 +1,11 @@
 .primary-header {
+  grid-area: header;
+
   .logo {
     font-size: 36px;
     font-weight: 600;
     text-shadow: 0 2px 2px #000000;
     text-align: center;
-    padding: 53px 0 62px;
+    // padding: 53px 0 62px;
   }
 }

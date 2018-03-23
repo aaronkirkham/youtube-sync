@@ -9,6 +9,14 @@ body {
   color: #ffffff;
   background-image: radial-gradient(circle at 0% 0%, #373b52, #252736 51%, #1d1e26);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#app {
+  display: grid;
+  grid-gap: 50px;
+  grid-template-areas: "header header header"
+                       "main main aside";
 }
 
 .text-align {

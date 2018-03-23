@@ -13,6 +13,8 @@ class Server {
       let room_id = null;
       let needs_url_update = false;
 
+      // TODO: update this for the vue-router stuff
+
       // do we have a room to connect to?
       let referer = client.handshake.headers.referer;
       if (referer.includes('/?')) {

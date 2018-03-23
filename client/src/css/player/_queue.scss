@@ -25,6 +25,10 @@
 .player {
   $this: &;
 
+  &__queue {
+    grid-area: aside;
+  }
+
   &__queue-container {
     margin-top: -5px;
 
