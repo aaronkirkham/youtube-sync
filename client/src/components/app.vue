@@ -5,12 +5,6 @@
         <h1 class="logo">YouTube Sync</h1>
       </div>
     </header>
-    <!-- <main class="primary-main" role="main">
-      <div class="container">
-        <router-view></router-view>
-      </div>
-    </main> -->
-
     <router-view></router-view>
   </div>
 </template>
