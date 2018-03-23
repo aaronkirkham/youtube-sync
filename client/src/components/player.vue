@@ -137,9 +137,9 @@
 
         // do we have a video ready to play?
         if (this.flags & PLY_WAITING) {
-         this.playVideo(this.when_ready);
-         this.when_ready = null;
-         this.flags &= ~PLY_WAITING;
+          this.playVideo(this.when_ready);
+          this.when_ready = null;
+          this.flags &= ~PLY_WAITING;
         }
       },
       playerStateChange(event) {
