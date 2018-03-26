@@ -47,6 +47,12 @@
       this.$root.$on('server__video--clock', data => {
         console.log('server__video--clock', data);
 
+        // we don't care about this if we're the host
+        if (is_host) {
+          console.error(`got clock update but we're the host!`);
+          return false;
+        }
+
         if (this.current.id === data.id) {
           if (data.timestamp && data.timestamp !== 0) {
             console.log(`synced ~${Date.now() - data.timestamp}ms ago...`);
@@ -56,6 +62,7 @@
             console.log(` - extrapolated: ${data.time}`);
             console.log(` - error: ${data.time - this.player.getCurrentTime()}`);
 
+            // TODO: this doesn't work if you seek backwards
             if ((data.time - this.player.getCurrentTime()) > 0.5) {
               this.player.seekTo(data.time, true);
               console.log('synced player');
@@ -255,6 +262,7 @@
 
           case YT.PlayerState.ENDED: {
             this.player.stopVideo();
+            console.log('video is ended!');
             break;
           }
         }
