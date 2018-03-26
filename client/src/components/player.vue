@@ -3,7 +3,7 @@
     <div class="player__iframe-container">
       <div id="player__iframe"></div>
     </div>
-    <div class="style-input">
+    <div class="style-input" v-bind:class="{ 'disabled': !is_online }">
       <input type="text" class="input" placeholder="Paste a YouTube URL..." v-model="video_to_queue" @keyup.enter="requestVideo()" />
       <button type="submit" class="button" @click="requestVideo()">Queue</button>
     </div>
@@ -265,6 +265,7 @@
       },
     },
     computed: {
+      is_online: () => store.state.is_online,
       is_host: () => store.state.im_the_host,
     },
   });

@@ -5,7 +5,7 @@ module.exports = {
   entry: ['./src/main.js'],
   output: {
     path: path.resolve(__dirname, './dist'),
-    filename: 'app.js'
+    filename: 'app.js',
   },
   module: {
     rules: [
@@ -33,9 +33,7 @@ module.exports = {
   },
   plugins: [
     new CopyWebpackPlugin([
-      {
-        from: 'src/index.html'
-      },
+      { from: 'src/index.html' },
     ])
   ],
   resolve: {

@@ -19,6 +19,12 @@
     // animation: move-gradient 3s linear infinite;
   }
 
+  &.disabled {
+    opacity: 0.2;
+    user-select: none;
+    pointer-events: none;
+  }
+
   .input {
     font-family: $default-font;
     font-weight: bold;

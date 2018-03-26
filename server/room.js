@@ -1,7 +1,7 @@
 "use strict";
 
 class Video {
-  constructor({video_id, title, thumbnail}) {
+  constructor({ video_id, title, thumbnail }) {
     this.id = Date.now();
     this.video_id = video_id;
     this.title = title;
