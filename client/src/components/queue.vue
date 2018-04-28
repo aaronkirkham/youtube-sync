@@ -26,6 +26,7 @@
 
 <script>
   import Vue from 'vue';
+  import store from '../store';
   import draggable from 'vuedraggable';
 
   export default Vue.component('player-queue', {
@@ -54,6 +55,9 @@
           console.log(this.items);
         }
       },
+    },
+    computed: {
+      is_online: () => store.state.is_online,
     },
   });
 </script>

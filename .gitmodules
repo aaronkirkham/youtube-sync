@@ -1,3 +1,0 @@
-[submodule "client/src/css/vendor/reflex"]
-	path = client/src/css/vendor/reflex
-	url = https://github.com/leejordan/reflex.git

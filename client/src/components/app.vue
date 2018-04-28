@@ -2,7 +2,7 @@
   <div id="app">
     <header class="primary-header" role="banner">
       <div class="container">
-        <h1 class="logo">YouTube Sync</h1>
+        <h1 class="logo">YouTube Sync <span v-if="!is_online">(OFFLINE)</span></h1>
       </div>
     </header>
     <router-view></router-view>
@@ -22,12 +22,13 @@
     }),
     mounted() {
       this.socket = io('http://localhost:8888'); // { reconnection: false, reconnectionDelay: 5000 });
-      this.socket.on('disconnect', () => router.push('/'));
+      this.socket.on('connect', () => store.commit('TOGGLE_ONLINE', true));
+      this.socket.on('disconnect', () => {
+        store.commit('TOGGLE_ONLINE', false);
+        store.commit('IM_THE_HOST', false);
+        router.push('/');
+      });
       // this.socket.on('connect_error', () => console.log('failed to connect to the server!'));
-
-      // TODO: on disconnect, clean up the store stuff
-      //        make sure is_online is false
-      //        make sure im_the_host is false
 
       // register send/receive events
       this.$on('send', data => this.socket.emit(`client__${data.type}`, data));

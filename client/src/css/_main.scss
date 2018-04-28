@@ -17,6 +17,7 @@ body {
   grid-gap: 50px;
   grid-template-areas: "header header header"
                        "main main aside";
+  grid-template-columns: auto auto 30%;
 }
 
 .text-align {

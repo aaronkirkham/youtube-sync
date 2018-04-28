@@ -13,13 +13,11 @@ class Server {
       let room_id = null;
       let needs_url_update = false;
 
-      // TODO: update this for the vue-router stuff
-
       // do we have a room to connect to?
-      let referer = client.handshake.headers.referer;
-      if (referer.includes('/?')) {
-        const query_params = this.splitQueryParams(referer.substr(referer.indexOf('/?') + 2, referer.length));
-        room_id = query_params['room'];
+      let referer = client.handshake.headers.referer.replace(client.handshake.headers.origin, '');
+      if (referer !== '/') {
+        // remove the leading slash
+        room_id = referer.startsWith('/') ? referer.substr(1, referer.length) : referer;
       }
       else {
         room_id = this.findRoom();
@@ -88,21 +86,6 @@ class Server {
     }
 
     return id;
-  }
-
-  /**
-   * Helper function to split URL query params into an object
-   */
-  splitQueryParams(str) {
-    const res = {};
-    const parts = str.split('&');
-  
-    parts.forEach(part => {
-      const s = part.split('=');
-      res[s[0]] = s[1];
-    });
-  
-    return res;
   }
 };
 

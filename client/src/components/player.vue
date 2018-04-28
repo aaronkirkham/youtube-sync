@@ -1,9 +1,9 @@
 <template>
-  <main class="player" role="main" id="player">
+  <main class="player" id="player">
     <div class="player__iframe-container">
       <div id="player__iframe"></div>
     </div>
-    <div class="style-input" v-bind:class="{ 'disabled': !is_online }">
+    <div class="style-input">
       <input type="text" class="input" placeholder="Paste a YouTube URL..." v-model="video_to_queue" @keyup.enter="requestVideo()" />
       <button type="submit" class="button" @click="requestVideo()">Queue</button>
     </div>
@@ -112,7 +112,7 @@
           }
 
           // are we the host of this room?
-          if (this.is_host) {
+          if (this.is_online && this.is_host) {
             if (this.clock.timer) {
               clearInterval(this.clock.timer);
             }
@@ -221,14 +221,21 @@
           .then(response => response.json())
           .then(data => {
             console.log(data);
-            
-            this.$root.$emit('send', {
-              type: 'queue--add',
+
+            const video_obj = {
               video_id: url_segments[2],
               title: data.title,
               url: data.url,
               thumbnail: data.thumbnail_url,
-            });
+            };
+
+            // send to the server if we are connected
+            if (this.is_online) {
+              this.$root.$emit('send', Object.assign({ type: 'queue--add' }, video_obj));
+            }
+            else {
+              this.$root.$emit('server__queue--add', video_obj);
+            }
 
             this.video_to_queue = '';
           })
