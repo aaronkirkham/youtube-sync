@@ -2,7 +2,7 @@
   "name": "youtube-sync-client",
   "version": "1.0.0",
   "description": "Sync youtube video playback between multiple clients.",
-  "main": "index.js",
+  "main": "./src/main.js",
   "scripts": {
     "start": "webpack-dev-server --config webpack.js --host 0.0.0.0",
     "build": "webpack --config webpack.js --progress --hide-modules",
@@ -13,7 +13,7 @@
     "url": "git+https://github.com/aaronkirkham/youtube-sync.git"
   },
   "author": "Aaron Kirkham",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/aaronkirkham/youtube-sync/issues"
   },

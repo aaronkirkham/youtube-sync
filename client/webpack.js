@@ -33,8 +33,9 @@ module.exports = {
   },
   plugins: [
     new CopyWebpackPlugin([
-      { from: 'src/index.html' },
-    ])
+      { from: './src/index.html' },
+      { from: './src/.htaccess' }
+    ]),
   ],
   resolve: {
     extensions: ['.js', '.vue', '.json'],

@@ -3,9 +3,9 @@
 const Room = require('./room');
 
 class Server {
-  constructor() {
+  constructor(port = 8888) {
     this.io = require('socket.io')();
-    this.io.listen(8888);
+    this.io.listen(port);
     this.rooms = [];
 
     // register the client handlers when we have a new connection
@@ -44,7 +44,7 @@ class Server {
    */
   join(client, id) {
     const room = this.rooms.find(room => room.id === id);
-    if (typeof room === "undefined") {
+    if (typeof room === 'undefined') {
       // create the room and add the client
       const new_room = new Room(this, id);
       new_room.connect(client);
@@ -81,7 +81,7 @@ class Server {
 
     // do we already have a room with this id?
     const result = this.rooms.find(room => room.id === id);
-    if (typeof result !== "undefined") {
+    if (typeof result !== 'undefined') {
       return this.findRoom();
     }
 

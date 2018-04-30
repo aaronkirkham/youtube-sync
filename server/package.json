@@ -2,7 +2,7 @@
   "name": "youtube-sync-server",
   "version": "1.0.0",
   "description": "Sync youtube video playback between multiple clients.",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
@@ -11,12 +11,12 @@
     "url": "git+https://github.com/aaronkirkham/youtube-sync.git"
   },
   "author": "Aaron Kirkham",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/aaronkirkham/youtube-sync/issues"
   },
   "homepage": "https://github.com/aaronkirkham/youtube-sync#readme",
   "dependencies": {
-    "socket.io": "^2.0.4"
+    "socket.io": "^2.1.0"
   }
 }

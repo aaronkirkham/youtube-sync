@@ -1,30 +1,6 @@
 "use strict";
 
-class Video {
-  constructor({ video_id, title, thumbnail }) {
-    this.id = Date.now();
-    this.video_id = video_id;
-    this.title = title;
-    this.thumbnail = thumbnail;
-    this.state = 0;
-    this.current_time = 0;
-    this.playback_rate = 1;
-    this.clock_time = 0;
-  }
-
-  data() {
-    return { id: this.id, video_id: this.video_id, title: this.title, thumbnail: this.thumbnail };
-  }
-
-  extdata() {
-    return { state: this.state, time: this.current_time, rate: this.playback_rate, timestamp: this.clock_time, ...this.data() };
-  }
-
-  setState(state) { this.state = state; }
-  setCurrentTime(time) { this.current_time = time; }
-  setPlaybackRate(rate) { this.playback_rate = rate; }
-  setClockTime(time) { this.clock_time = time; }
-};
+const Video = require('./video');
 
 class Room {
   constructor(parent, id) {
@@ -35,6 +11,23 @@ class Room {
     this.playing = null;
     this.queue = new Set();
     this.clock = { timer: null, resolution: 5000 };
+  }
+
+  /**
+   * Main clock callback, used to send ticks to clients in the room
+   */
+  tick() {
+    // if we have only 1 client in the room, stop the clock
+    if (this.clients.size === 1) {
+      console.log(`we only have 1 client reminaing. stopping the clock.`);
+      clearInterval(this.clock.timer);
+      this.clock.timer = null;
+    }
+    // is the current video still playing?
+    else if (this.playing && this.playing.state === 1) {
+      const clients = Array.from(this.clients).filter(c => c !== this.host);
+      clients.forEach(c => c.emit('recv', { type: 'video--clock', id: this.playing.id, time: this.playing.current_time, timestamp: this.playing.clock_time }));
+    }
   }
 
   /**
@@ -49,28 +42,10 @@ class Room {
     else if (!this.clock.timer) {
       console.log('started the clock');
 
-      this.clock.timer = setInterval(() => {
-        // stop the clock if we only have 1 client remaining
-        if (this.clients.size === 1) {
-          console.log('stopped the clock.');
-
-          // TODO: this causes some desync when the clock is created again!
-          clearInterval(this.clock.timer);
-          this.clock.timer = null;
-          return;
-        }
-        
-        // YT.PlayerState.PLAYING
-        if (this.playing && this.playing.state === 1) {
-          this.clients.forEach(client => {
-            if (client !== this.host) {
-              client.emit('recv', { type: 'video--clock', id: this.playing.id, time: this.playing.current_time, timestamp: this.playing.clock_time });
-            }
-          });
-        }
-      }, this.clock.resolution);
+      this.clock.timer = setInterval(this.tick.bind(this), this.clock.resolution);
     }
 
+    // add the client to the room
     this.clients.add(client);
 
     // register the socket events
@@ -103,6 +78,12 @@ class Room {
     if (client === this.host && this.clients.size !== 0) {
       this.host = this.clients[Symbol.iterator]().next().value;
       this.host.emit('recv', { type: 'im_the_host' });
+    }
+
+    // stop the clock if we need to
+    if (this.clients.size < 2 && this.clock.timer) {
+      clearInterval(this.clock.timer);
+      this.clock.timer = null;
     }
   }
 
@@ -172,28 +153,21 @@ class Room {
       switch (data.state) {
         // YT.PlayerState.PLAYING
         case 1: {
-          this.playing.setCurrentTime(data.time);
-          this.playing.setClockTime(data.timestamp);
-
+          this.playing.setTime(data.time, data.timestamp);
           console.log('PLAY VIDEO');
-
           break;
         }
 
         // YT.PlayerState.PAUSED
         case 2: {
-          this.playing.setCurrentTime(data.time);
-          this.playing.setClockTime(Date.now());
-
+          this.playing.setTime(data.time, Date.now());
           console.log('PAUSE VIDEO');
-
           break;
         }
 
         // YT.PlayerState.ENDED
         case 0: {
-          this.playing.setCurrentTime(0);
-          this.playing.setClockTime(0);
+          this.playing.setTime(0, 0);
           this.playing.setPlaybackRate(1);
 
           this.nextVideo(client);
@@ -202,11 +176,9 @@ class Room {
       }
 
       // update the clients immediately
-      this.clients.forEach(client => {
-        if (client !== this.host) {
-          client.emit('recv', { type: 'video--state', id: this.playing.id, state: this.playing.state });
-          client.emit('recv', { type: 'video--clock', id: this.playing.id, time: data.time, timestamp: data.timestamp });
-        }
+      Array.from(this.clients).filter(c => c !== this.host).forEach(client => {
+        client.emit('recv', { type: 'video--state', id: this.playing.id, state: this.playing.state });
+        client.emit('recv', { type: 'video--clock', id: this.playing.id, time: data.time, timestamp: data.timestamp });
       });
     }
   }
@@ -243,6 +215,9 @@ class Room {
       this.parent.io.emit('recv', { type: 'queue--remove', id: next.id });
       this.parent.io.emit('recv', { type: 'video--play', ...next.data() });
     }
+    else {
+      console.log('playlist finished.');
+    }
   }
 
   /**
@@ -255,12 +230,7 @@ class Room {
 
     if (this.playing && this.playing.id === data.id) {
       //console.log('updateClock', data.time, data.timestamp);
-
-      this.playing.setCurrentTime(data.time);
-      this.playing.setClockTime(data.timestamp);
-    }
-    else {
-      console.warn('got a clock update for a different video', data.id, this.playing.id);
+      this.playing.setTime(data.time, data.timestamp);
     }
   }
 
