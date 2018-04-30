@@ -9,7 +9,7 @@ class Room {
     this.host = null;
     this.clients = new Set();
     this.playing = null;
-    this.queue = new Set();
+    this.queue = [];
     this.clock = { timer: null, resolution: 5000 };
   }
 
@@ -49,8 +49,9 @@ class Room {
     this.clients.add(client);
 
     // register the socket events
-    this.on(client, 'queue--add', data => this.queueVideo(client, data));
-    this.on(client, 'queue--remove', data => this.unqueueVideo(client, data));
+    this.on(client, 'queue--add', data => this.queueAdd(client, data));
+    this.on(client, 'queue--remove', data => this.queueRemove(client, data));
+    this.on(client, 'queue--order', data => this.queueOrder(client, data));
     this.on(client, 'video--change', data => this.changeVideo(client, data));
     this.on(client, 'video--update', data => this.updateVideo(client, data));
     this.on(client, 'video--playback-rate', data => this.updateVideoPlaybackRate(client, data));
@@ -88,16 +89,16 @@ class Room {
   }
 
   /**
-   * Queue a video
+   * Add a video to the current queue
    */
-  queueVideo(client, data) {
+  queueAdd(client, data) {
     console.log(`queue video "${data.title}"..`);
 
     const video = new Video(data);
 
     // do we already have a video playing?
     if (this.playing) {
-      this.queue.add(video);
+      this.queue.push(video);
       this.parent.io.emit('recv', { type: 'queue--add', ...video.data() });
     }
     else {
@@ -107,17 +108,34 @@ class Room {
   }
 
   /**
-   * Unqueue a video
+   * Remove a video from the current queue
    */
-  unqueueVideo(client, data) {
+  queueRemove(client, data) {
     // TODO: PERMISSIONS
 
-    this.queue.forEach(video => {
-      if (video.id === data.id) {
-        this.queue.delete(video);
-        this.parent.io.emit('recv', { type: 'queue--remove', id: video.id });
+    // try find the video in the queue
+    const index = this.queue.findIndex(video => video.id === data.id);
+    if (index !== -1) {
+      // remove the video from the queue
+      const removed = this.queue.splice(index, 1);
+      if (removed.length !== 0) {
+        this.parent.io.emit('recv', { type: 'queue--remove', id: removed[0].id });
+
+        console.log(`Removed "${removed[0].title}" from the queue.`);
       }
+    }
+  }
+
+  /**
+   * Change the order of the current queue
+   */
+  queueOrder(client, data) {
+    this.queue.sort((a, b) => {
+      return data.order.indexOf(a.id) > data.order.indexOf(b.id) ? 1 : -1;
     });
+
+    const clients = Array.from(this.clients).filter(c => c !== client);
+    clients.forEach(c => c.emit('recv', { type: 'queue--order', order: data.order }));
   }
 
   /**
@@ -126,15 +144,33 @@ class Room {
   changeVideo(client, data) {
     // TODO: PERMISSIONS
 
-    this.queue.forEach(video => {
-      if (video.id === data.id) {
-        this.queue.delete(video);
+    // this.queue.forEach(video => {
+    //   if (video.id === data.id) {
+    //     this.queue.delete(video);
 
-        this.playing = video;
-        this.parent.io.emit('recv', { type: 'queue--remove', id: video.id });
-        this.parent.io.emit('recv', { type: 'video--play', ...video.data() });
-      }
-    });
+    //     this.playing = video;
+    //     this.parent.io.emit('recv', { type: 'queue--remove', id: video.id });
+    //     this.parent.io.emit('recv', { type: 'video--play', ...video.data() });
+    //   }
+    // });
+
+    // TODO: we don't use this function.
+    throw new Error("Not implemented");
+
+    // try find the video in the queue
+    const index = this.queue.findIndex(video => video.id === data.id);
+    if (index !== -1) {
+      console.log(`changeVideo - found video at ${index}!`);
+
+      const video = this.queue[index];
+      console.log(video);
+
+      this.playing = video;
+      this.parent.io.emit('recv', { type: 'video--play', ...video.data() });
+
+      // remove the video from the queue
+      this.queueRemove(client, data);
+    }
   }
 
   /**
@@ -206,17 +242,21 @@ class Room {
       return;
     }
 
-    // find the next video to play and send it to the clients
-    if (this.queue.size !== 0) {
+    // find the next video to play from the queue
+    if (this.queue.length !== 0) {
       const next = this.queue[Symbol.iterator]().next().value;
-      this.queue.delete(next);
 
+      // play the next video
       this.playing = next;
-      this.parent.io.emit('recv', { type: 'queue--remove', id: next.id });
       this.parent.io.emit('recv', { type: 'video--play', ...next.data() });
+
+      // remove the next video from the queue
+      this.queueRemove(client, { id: next.id });
+      
+      console.log(this.queue);
     }
     else {
-      console.log('playlist finished.');
+      console.log('playlist finished!');
     }
   }
 
@@ -228,8 +268,8 @@ class Room {
       return;
     }
 
+    // update the clock for the current video
     if (this.playing && this.playing.id === data.id) {
-      //console.log('updateClock', data.time, data.timestamp);
       this.playing.setTime(data.time, data.timestamp);
     }
   }

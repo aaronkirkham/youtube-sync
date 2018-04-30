@@ -40,6 +40,11 @@
     mounted() {
       this.$root.$on('server__queue--add', data => this.items.push(data));
       this.$root.$on('server__queue--remove', data => this.items = this.items.filter(v => v.id !== data.id));
+      this.$root.$on('server__queue--order', data => {
+        this.items.sort((a, b) => {
+          return data.order.indexOf(a.id) > data.order.indexOf(b.id) ? 1 : -1;
+        });
+      });
       this.$root.$on('server__room--update', data => this.items = data.queue);
     },
     methods: {
@@ -52,7 +57,9 @@
 
         if (end) {
           console.log(`sending updated queue order...`);
-          console.log(this.items);
+
+          const order = this.items.map(item => item.id);
+          this.$root.$emit('send', { type: 'queue--order', order });
         }
       },
     },

@@ -2,7 +2,7 @@
 
 class Video {
   constructor({ video_id, title, thumbnail }) {
-    this.id = Date.now();
+    this.id = Math.random().toString(36).substr(2, 7);
     this.video_id = video_id;
     this.title = title;
     this.thumbnail = thumbnail;

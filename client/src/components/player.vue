@@ -6,6 +6,7 @@
     <div class="style-input">
       <input type="text" class="input" placeholder="Paste a YouTube URL..." v-model="video_to_queue" @keyup.enter="requestVideo()" />
       <button type="submit" class="button" @click="requestVideo()">Queue</button>
+      <button type="button" class="button" @click="debugQueue()">Debug Queue</button>
     </div>
   </main>
 </template>
@@ -48,10 +49,10 @@
         console.log('server__video--clock', data);
 
         // we don't care about this if we're the host
-        if (is_host) {
-          console.error(`got clock update but we're the host!`);
-          return false;
-        }
+        // if (this.is_host) {
+        //   console.error(`got clock update but we're the host!`);
+        //   return false;
+        // }
 
         if (this.current.id === data.id) {
           if (data.timestamp && data.timestamp !== 0) {
@@ -60,7 +61,7 @@
             // extrapolate the player time to compensate for the ping
             data.time += (Math.abs(Date.now() - data.timestamp) / 1000);
             console.log(` - extrapolated: ${data.time}`);
-            console.log(` - error: ${data.time - this.player.getCurrentTime()}`);
+            console.log(` - diff from player: ${data.time - this.player.getCurrentTime()}`);
 
             // TODO: this doesn't work if you seek backwards
             if ((data.time - this.player.getCurrentTime()) > 0.5) {
@@ -277,6 +278,31 @@
       changeVideo(video) {
         console.log(`requesting change to "${video.title}" (${video.id})...`);
         this.$root.$emit('send', { type: 'video--change', id: video.id });
+      },
+      debugQueue() {
+        this.$root.$emit('send', {
+          type: 'queue--add',
+          video_id: 'oySqE3z99AE',
+          title: 'Hybrid Minds - Inside (ft. Emily Jones)',
+          url: 'https://www.youtube.com/watch?v=oySqE3z99AE',
+          thumbnail: 'https://i.ytimg.com/vi/oySqE3z99AE/hqdefault.jpg',
+        });
+
+        this.$root.$emit('send', {
+          type: 'queue--add',
+          video_id: 'JSxCc2e3BEE',
+          title: 'Hybrid Minds - Liquicity Winterfestival 2017',
+          url: 'https://www.youtube.com/watch?v=JSxCc2e3BEE',
+          thumbnail: 'https://i.ytimg.com/vi/JSxCc2e3BEE/hqdefault.jpg',
+        });
+
+        this.$root.$emit('send', {
+          type: 'queue--add',
+          video_id: '-fCtvurGDD8',
+          title: 'Birdy - Wings (Nu:Logic Remix)',
+          url: 'https://www.youtube.com/watch?v=-fCtvurGDD8',
+          thumbnail: 'https://i.ytimg.com/vi/-fCtvurGDD8/hqdefault.jpg',
+        });
       },
     },
     computed: {
