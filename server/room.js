@@ -16,7 +16,7 @@ class Room {
   /**
    * Main clock callback, used to send ticks to clients in the room
    */
-  tick() {
+  clockTick() {
     // if we have only 1 client in the room, stop the clock
     if (this.clients.size === 1) {
       console.log(`we only have 1 client reminaing. stopping the clock.`);
@@ -41,8 +41,7 @@ class Room {
     // start the clock if we need to
     else if (!this.clock.timer) {
       console.log('started the clock');
-
-      this.clock.timer = setInterval(this.tick.bind(this), this.clock.resolution);
+      this.clock.timer = setInterval(this.clockTick.bind(this), this.clock.resolution);
     }
 
     // add the client to the room

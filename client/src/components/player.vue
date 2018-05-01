@@ -176,14 +176,14 @@
           }
 
           case YT.PlayerState.PAUSED: {
-            this.$root.$emit('send', { type: 'video--update', state: YT.PlayerState.PAUSED, time: this.player.getCurrentTime(), timestamp: 0 });
+            this.$root.$emit('send', { type: 'video--update', state: YT.PlayerState.PAUSED, time: this.player.getCurrentTime(), timestamp: Date.now() });
 
             this.flags |= PLY_PAUSED;
             break;
           }
 
           case YT.PlayerState.ENDED: {
-            this.$root.$emit('send', { type: 'video--update', state: YT.PlayerState.ENDED, time: 0, timestamp: 0 });
+            this.$root.$emit('send', { type: 'video--update', state: YT.PlayerState.ENDED, time: 0, timestamp: Date.now() });
             break;
           }
         }
