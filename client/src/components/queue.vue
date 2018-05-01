@@ -56,8 +56,6 @@
         document.getElementById('player-queue-draggable').classList.toggle('dragging', !end);
 
         if (end) {
-          console.log(`sending updated queue order...`);
-
           const order = this.items.map(item => item.id);
           this.$root.$emit('send', { type: 'queue--order', order });
         }

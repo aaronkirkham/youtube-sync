@@ -252,8 +252,6 @@ class Room {
 
       // remove the next video from the queue
       this.queueRemove(client, { id: next.id });
-      
-      console.log(this.queue);
     }
     else {
       console.log('playlist finished!');
