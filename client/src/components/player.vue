@@ -26,7 +26,7 @@
       flags: 0,
       current: null,
       when_ready: null,
-      video_to_queue: 'https://www.youtube.com/watch?v=oySqE3z99AE',
+      video_to_queue: '',
       clock: {
         timer: null,
         resolution: 3000, // sync the clocks every 3 seconds
@@ -47,12 +47,6 @@
 
       this.$root.$on('server__video--clock', data => {
         console.log('server__video--clock', data);
-
-        // we don't care about this if we're the host
-        // if (this.is_host) {
-        //   console.error(`got clock update but we're the host!`);
-        //   return false;
-        // }
 
         if (this.current.id === data.id) {
           if (data.timestamp && data.timestamp !== 0) {
@@ -98,6 +92,16 @@
       };
     },
     methods: {
+      clockTick() {
+        if ((this.flags & PLY_READY) && !(this.flags & PLY_PAUSED)) {
+          this.$root.$emit('send', {
+            type: 'video--clock',
+            id: this.current.id,
+            time: this.player.getCurrentTime(),
+            timestamp: Date.now()
+          });
+        }
+      },
       playVideo(video) {
         if (video && (this.flags & PLY_READY)) {
           console.log('playing video', video);
@@ -110,26 +114,6 @@
           if (typeof video.rate !== 'undefined') {
             console.log('updating playback rate to', video.rate);
             this.player.setPlaybackRate(video.rate);
-          }
-
-          // are we the host of this room?
-          if (this.is_online && this.is_host) {
-            if (this.clock.timer) {
-              clearInterval(this.clock.timer);
-            }
-
-            // start the clock to sync the video
-            this.clock.timer = setInterval(() => {
-              if (!(this.flags & PLY_PAUSED)) {
-                this.$root.$emit('send', {
-                  type: 'video--clock',
-                  id: this.current.id,
-                  time: this.player.getCurrentTime(),
-                  timestamp: Date.now()
-                });
-              }
-
-            }, this.clock.resolution);
           }
         }
         else if (video && !(this.flags & PLY_READY)) {
@@ -308,6 +292,27 @@
     computed: {
       is_online: () => store.state.is_online,
       is_host: () => store.state.im_the_host,
+    },
+    watch: {
+      // if we are the new room host, start the clock!
+      is_host(state) {
+        if (state) {
+          // just in case we have another clock running for some strange reason
+          if (this.clock.timer) {
+            clearInterval(this.clock.timer);
+          }
+
+          // send a single tick now to get the server up to speed with where we're currently at
+          this.clockTick();
+
+          // start the clock to sync the video
+          this.clock.timer = setInterval(this.clockTick.bind(this), this.clock.resolution);
+        }
+        else if (this.clock.timer) {
+          clearInterval(this.clock.timer);
+          this.clock.timer = null;
+        }
+      },
     },
   });
 </script>
