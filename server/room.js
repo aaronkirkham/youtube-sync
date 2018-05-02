@@ -210,11 +210,13 @@ class Room {
         }
       }
 
-      // update the clients immediately
-      Array.from(this.clients).filter(c => c !== this.host).forEach(client => {
-        client.emit('recv', { type: 'video--state', id: this.playing.id, state: this.playing.state });
-        client.emit('recv', { type: 'video--clock', id: this.playing.id, time: data.time, timestamp: data.timestamp });
-      });
+      // if the video didn't end, update the clients immediately
+      if (data.state !== 0) {
+        Array.from(this.clients).filter(c => c !== this.host).forEach(client => {
+          client.emit('recv', { type: 'video--state', id: this.playing.id, state: this.playing.state });
+          client.emit('recv', { type: 'video--clock', id: this.playing.id, time: data.time, timestamp: data.timestamp });
+        });
+      }
     }
   }
 
