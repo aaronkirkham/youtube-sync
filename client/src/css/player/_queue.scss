@@ -22,6 +22,12 @@
 //   }
 // }
 
+// .queue-sorting {
+//   .draggable-list-move {
+//     transition: transform 150ms $transition-style;
+//   }
+// }
+
 .player {
   $this: &;
 
@@ -31,6 +37,13 @@
 
   &__queue-container {
     margin-top: -5px;
+
+    // we don't want to use any transitions if we are the ones moving the queue items
+    &:not(.no-sort-animation) {
+      .draggable-list-move {
+        transition: transform 150ms $transition-style;
+      }
+    }
 
     &:not(.dragging):not(.sortable-chosen) {
       #{$this} {

@@ -1,19 +1,21 @@
 <template>
   <aside class="player__queue">
     <draggable v-model="items" v-bind:options="draggable_options" id="player-queue-draggable" class="player__queue-container" @start="queueSort(false)" @end="queueSort(true)">
-      <div v-for="video in items" v-bind:key="video.id" class="player__queue-item-container">
-        <div class="player__queue-item">
-          <div class="player__queue-item-thumbnail-container">
-            <img v-bind:src="video.thumbnail" class="player__queue-item-thumbnail" />
+      <transition-group name="draggable-list" tag="div">
+        <div v-for="video in items" v-bind:key="video.id" class="player__queue-item-container">
+          <div class="player__queue-item">
+            <div class="player__queue-item-thumbnail-container">
+              <img v-bind:src="video.thumbnail" class="player__queue-item-thumbnail" />
+            </div>
+            <p class="player__queue-item-title">{{ video.title }}</p>
+            <button class="button--no-native player__queue-item-remove" title="Remove video from queue" @click="removeFromQueue(video)">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="feather feather-x">
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </button>
           </div>
-          <p class="player__queue-item-title">{{ video.title }}</p>
-          <button class="button--no-native player__queue-item-remove" title="Remove video from queue" @click="removeFromQueue(video)">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="feather feather-x">
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
-          </button>
         </div>
-      </div>
+      </transition-group>
     </draggable>
     <div class="player__queue-no-items" v-if="items.length === 0">
       <svg xmlns="http://www.w3.org/2000/svg" width="46.47" height="46.47">
@@ -53,11 +55,16 @@
         this.$root.$emit('send', { type: 'queue--remove', id: video.id });
       },
       queueSort(end) {
-        document.getElementById('player-queue-draggable').classList.toggle('dragging', !end);
+        const draggable_container = document.getElementById('player-queue-draggable');
+        draggable_container.classList.toggle('dragging', !end);
 
         if (end) {
           const order = this.items.map(item => item.id);
           this.$root.$emit('send', { type: 'queue--order', order });
+          setTimeout(() => draggable_container.classList.remove('no-sort-animation'), 150);
+        }
+        else {
+          draggable_container.classList.add('no-sort-animation');
         }
       },
     },
