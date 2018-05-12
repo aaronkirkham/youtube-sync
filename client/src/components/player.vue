@@ -7,7 +7,7 @@
       <input type="text" class="input" placeholder="Paste a YouTube URL..." v-model="video_to_queue" @keyup.enter="requestVideo()" />
       <button type="submit" class="button" @click="requestVideo()">Queue</button>
     </div>
-    <button @click="debugQueue()">Queue Debug Videos</button>
+    <button @click="debugQueue()" style="margin-top:10px;">Queue Debug Videos</button>
   </main>
 </template>
 
@@ -82,26 +82,29 @@
     },
     methods: {
       clockTick() {
-        if ((this.flags & PLY_READY) && !(this.flags & PLY_PAUSED)) {
+        if (this.is_online && this.current && ((this.flags & PLY_READY) && !(this.flags & PLY_PAUSED))) {
           this.$root.$emit('send', {
             type: 'video--clock',
             id: this.current.id,
             time: this.player.getCurrentTime(),
-            timestamp: Date.now()
+            timestamp: Date.now(),
           });
         }
       },
       calcNetworkPlayerTime({ time, timestamp }, ignore_delta = false) {
         console.log(`calcNetworkPlayerTime(${time}, ${timestamp})`);
 
+        console.log('timestamp:', Date.now(), timestamp, Date.now() - timestamp);
+
         // extrapolate and calculate the delta
         let t = (time + (Math.abs(Date.now() - timestamp) / 1000));
+        console.log('t:', t, this.player.getCurrentTime());
         let delta = Math.abs(t - this.player.getCurrentTime());
 
         console.log(` delta: ${delta}`);
 
         // ignore if we are within the margin of error
-        if (!ignore_delta && delta < 0.3) {
+        if (!ignore_delta && delta < 0.8) {
           return false;
         }
 
@@ -151,11 +154,13 @@
           }
 
           // resync the clock if we need to
-          if (!this.is_host && this.resync_clock && this.current.state === YT.PlayerState.PLAYING) {
-            const time = this.calcNetworkPlayerTime(this.current, true);
-            this.player.seekTo(time, true);
-            this.resync_clock = false;
-          }
+          // if (!this.is_host && this.resync_clock && this.current.state === YT.PlayerState.PLAYING) {
+          //   const time = this.calcNetworkPlayerTime(this.current, true);
+          //   this.player.seekTo(time, true);
+          //   this.resync_clock = false;
+
+          //   console.log('resynced clock!');
+          // }
         }
 
         // don't continue below unless we're the host and we're actually playing a video
@@ -182,6 +187,7 @@
 
           case YT.PlayerState.ENDED: {
             this.$root.$emit('send', { type: 'video--update', state: YT.PlayerState.ENDED, time: 0, timestamp: Date.now() });
+            this.flags |= PLY_PAUSED;
             break;
           }
         }

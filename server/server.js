@@ -1,20 +1,25 @@
 "use strict";
 
 const Room = require('./room');
+const Client = require('./client');
+const clc = require('cli-color');
 
 class Server {
   constructor(port = 8888) {
-    this.io = require('socket.io')();
-    this.io.listen(port);
+    this.io = require('socket.io')(port);
+    this.clients = new Set();
     this.rooms = [];
 
     // register the client handlers when we have a new connection
-    this.io.on('connection', client => {
+    this.io.on('connection', socket => {
+      const client = new Client(socket);
+      this.clients.add(client);
+
       let room_id = null;
       let needs_url_update = false;
 
       // do we have a room to connect to?
-      let referer = client.handshake.headers.referer.replace(client.handshake.headers.origin, '');
+      let referer = socket.handshake.headers.referer.replace(socket.handshake.headers.origin, '');
       if (referer !== '/') {
         // remove the leading slash
         room_id = referer.startsWith('/') ? referer.substr(1, referer.length) : referer;
@@ -29,14 +34,14 @@ class Server {
 
       // if we need to update the url, send the packet
       if (needs_url_update) {
-        client.emit('recv', { type: 'update_url', id: room_id });
+        client.send('update_url', { id: room_id });
       }
 
-      //client.on('room_join', id => this.join(client, id));
-      client.on('disconnect', () => this.leave(client));
+      // handle disconnect
+      socket.on('disconnect', () => this.leave(client));
     });
 
-    console.log('server is listening on port 8888..');
+    console.log(`server is listening on port ${port}...`);
   }
   
   /**
@@ -69,8 +74,20 @@ class Server {
       }
     });
 
+    // remove the client from the clients list
+    this.clients.delete(client);
+
     // cleanup any rooms without clients now
     // this.rooms = this.rooms.filter(room => room.clients.size !== 0);
+  }
+
+  /**
+   * Send packet to all clients
+   * @param {string} identifier the packet type identifier
+   * @param {object} data data to send to the client
+   */
+  emit(identifier, data = {}) {
+    return this.io.emit('recv', { type: identifier, ...data });
   }
 
   /**
