@@ -98,11 +98,11 @@ class Room {
     // do we already have a video playing?
     if (this.playing) {
       this.queue.push(video);
-      this.server.emit('queue--add', video.data());
+      this.emit('queue--add', video.data());
     }
     else {
       this.playing = video;
-      this.server.emit('video--play', video.data());
+      this.emit('video--play', video.data());
     }
   }
 
@@ -118,7 +118,7 @@ class Room {
       // remove the video from the queue
       const removed = this.queue.splice(index, 1);
       if (removed.length !== 0) {
-        this.server.emit('queue--remove', { id: removed[0].id });
+        this.emit('queue--remove', { id: removed[0].id });
 
         console.log(`Removed "${removed[0].title}" from the queue.`);
       }
@@ -165,7 +165,7 @@ class Room {
       console.log(video);
 
       this.playing = video;
-      this.server.emit('video--play', video.data());
+      this.emit('video--play', video.data());
 
       // remove the video from the queue
       this.queueRemove(client, data);
@@ -247,7 +247,7 @@ class Room {
 
       // play the next video
       this.playing = next;
-      this.server.emit('video--play', next.data());
+      this.emit('video--play', next.data());
 
       // remove the next video from the queue
       this.queueRemove(client, { id: next.id });
@@ -273,6 +273,15 @@ class Room {
       // this.playing.setTime(data.time, data.timestamp);
       this.playing.setTime(data.time, client.clockCorrected(data.timestamp));
     }
+  }
+
+  /**
+   * Send packet to all clients in the room
+   * @param {string} identifier the packet type identifier
+   * @param {object} data data to send to the client
+   */
+  emit(identifier, data = {}) {
+    this.clients.forEach(client => client.send(identifier, data));
   }
 };
 

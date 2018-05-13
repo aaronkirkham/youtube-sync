@@ -82,15 +82,6 @@ class Server {
   }
 
   /**
-   * Send packet to all clients
-   * @param {string} identifier the packet type identifier
-   * @param {object} data data to send to the client
-   */
-  emit(identifier, data = {}) {
-    return this.io.emit('recv', { type: identifier, ...data });
-  }
-
-  /**
    * Find a room id which isn't in use
    */
   findRoom() {
