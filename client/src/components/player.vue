@@ -41,10 +41,7 @@
       this.$root.$on('server__video--update', data => {});
       this.$root.$on('server__video--state', data => this.server_updatePlayerState(data));
       this.$root.$on('server__video--playback-rate', data => this.server_updatePlaybackRate(data));
-      this.$root.$on('server__room--update', data => {
-        console.log('server__room--update', data);
-        this.server_playVideo(data.playing);
-      });
+      this.$root.$on('server__room--update', data => this.server_playVideo(data.playing));
 
       this.$root.$on('server__video--clock', data => {
         console.log('server__video--clock', data);
