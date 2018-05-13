@@ -12,24 +12,6 @@ class Room {
     this.clients = new Set();
     this.playing = null;
     this.queue = [];
-    this.clock = { timer: null, resolution: 5000 };
-  }
-
-  /**
-   * Main clock callback, used to send ticks to clients in the room
-   */
-  clockTick() {
-    // if we have only 1 client in the room, stop the clock
-    if (this.clients.size === 1) {
-      console.log(`we only have 1 client reminaing. stopping the clock.`);
-      clearInterval(this.clock.timer);
-      this.clock.timer = null;
-    }
-    // is the current video still playing?
-    else if (this.playing && this.playing.state === 1) {
-      const clients = Array.from(this.clients).filter(c => c !== this.host);
-      clients.forEach(client => client.send('video--clock', { id: this.playing.id, time: this.playing.current_time, timestamp: this.playing.clock_time }));
-    }
   }
 
   /**
@@ -39,11 +21,6 @@ class Room {
     if (this.clients.size === 0) {
       this.host = client;
       this.host.send('im_the_host');
-    }
-    // start the clock if we need to
-    else if (!this.clock.timer) {
-      console.log('started the clock');
-      this.clock.timer = setInterval(this.clockTick.bind(this), this.clock.resolution);
     }
 
     // add the client to the room
@@ -59,9 +36,15 @@ class Room {
     client.on('video--clock', data => this.updateClock(client, data));
 
     // send the current room state to the client
-    const update_room_info = { playing: this.playing ? this.playing.extdata() : null, queue: [] };
-    this.queue.forEach(video => update_room_info.queue.push(video.data()));
-    client.send('room--update', update_room_info);
+    if (this.playing || this.queue.length > 0) {
+      const update_room_info = { playing: this.playing ? this.playing.fullData() : null, queue: [] };
+      this.queue.forEach(video => update_room_info.queue.push(video.data()));
+      client.send('room--update', update_room_info);
+
+      // TODO: need to keep track of how long ago the last player time was synced
+      // so if a user joins right after the last sync, they won't be 2500ms behind the current player time
+      // time += (Math.abs(Date.now() - last_sync_time) / 1000);
+    }
   }
 
   /**
@@ -79,20 +62,12 @@ class Room {
       this.host = this.clients[Symbol.iterator]().next().value;
       this.host.send('im_the_host');
     }
-
-    // stop the clock if we need to
-    if (this.clients.size < 2 && this.clock.timer) {
-      clearInterval(this.clock.timer);
-      this.clock.timer = null;
-    }
   }
 
   /**
    * Add a video to the current queue
    */
   queueAdd(client, data) {
-    console.log(`queue video "${data.title}"..`);
-
     const video = new Video(data);
 
     // do we already have a video playing?
@@ -119,8 +94,6 @@ class Room {
       const removed = this.queue.splice(index, 1);
       if (removed.length !== 0) {
         this.emit('queue--remove', { id: removed[0].id });
-
-        console.log(`Removed "${removed[0].title}" from the queue.`);
       }
     }
   }
@@ -133,74 +106,55 @@ class Room {
       return data.order.indexOf(a.id) > data.order.indexOf(b.id) ? 1 : -1;
     });
 
-    const clients = Array.from(this.clients).filter(c => c !== client);
-    clients.forEach(client => client.send('queue--order', { order: data.order }));
+    this.emit('queue--order', { order: data.order }, client);
   }
 
   /**
    * Change a video
    */
   changeVideo(client, data) {
-    // TODO: PERMISSIONS
-
-    // this.queue.forEach(video => {
-    //   if (video.id === data.id) {
-    //     this.queue.delete(video);
-
-    //     this.playing = video;
-    //     this.parent.io.emit('recv', { type: 'queue--remove', id: video.id });
-    //     this.parent.io.emit('recv', { type: 'video--play', ...video.data() });
-    //   }
-    // });
-
     // TODO: we don't use this function.
     throw new Error("Not implemented");
 
     // try find the video in the queue
-    const index = this.queue.findIndex(video => video.id === data.id);
-    if (index !== -1) {
-      console.log(`changeVideo - found video at ${index}!`);
+    // const index = this.queue.findIndex(video => video.id === data.id);
+    // if (index !== -1) {
+    //   console.log(`changeVideo - found video at ${index}!`);
 
-      const video = this.queue[index];
-      console.log(video);
+    //   const video = this.queue[index];
+    //   console.log(video);
 
-      this.playing = video;
-      this.emit('video--play', video.data());
+    //   this.playing = video;
+    //   this.emit('video--play', video.data());
 
-      // remove the video from the queue
-      this.queueRemove(client, data);
-    }
+    //   // remove the video from the queue
+    //   this.queueRemove(client, data);
+    // }
   }
 
   /**
    * Update video
    */
   updateVideo(client, data) {
-    // if (client !== this.host) {
-    //   return;
-    // }
-
     if (this.playing) {
       this.playing.setState(data.state);
-
-      console.log('updateVideo', data.state);
 
       switch (data.state) {
         // YT.PlayerState.PLAYING
         case 1: {
-          this.playing.setTime(data.time, data.timestamp);
+          this.playing.setTime(data.time);
           break;
         }
 
         // YT.PlayerState.PAUSED
         case 2: {
-          this.playing.setTime(data.time, data.timestamp);
+          this.playing.setTime(data.time);
           break;
         }
 
         // YT.PlayerState.ENDED
         case 0: {
-          this.playing.setTime(0, data.timestamp);
+          this.playing.setTime(0);
           this.playing.setPlaybackRate(1);
 
           this.nextVideo(client);
@@ -210,10 +164,7 @@ class Room {
 
       // if the video didn't end, update the clients immediately
       if (data.state !== 0) {
-        Array.from(this.clients).filter(c => c !== this.host).forEach(client => {
-          client.send('video--state', { id: this.playing.id, state: this.playing.state });
-          client.send('video--clock', { id: this.playing.id, time: data.time, timestamp: data.timestamp });
-        });
+        this.emit('video--state', { id: this.playing.id, state: this.playing.state, time: this.playing.time }, client);
       }
     }
   }
@@ -222,14 +173,9 @@ class Room {
    * Update video playback rate
    */
   updateVideoPlaybackRate(client, data) {
-    // if (client !== this.host) {
-    //   return;
-    // }
-
     if (this.playing) {
       this.playing.setPlaybackRate(data.rate);
-
-      //console.log('set current video playback rate to:', data.rate);
+      this.emit('video--playback-rate', { id: this.playing.id, rate: this.playing.playback_rate }, client);
     }
   }
 
@@ -261,17 +207,16 @@ class Room {
    * Clock to keep everything in sync
    */
   updateClock(client, data) {
-    if (client !== this.host) {
+    if (client !== this.host || !this.playing) {
       return;
     }
 
-    // update the clients clock
-    client.updateClock(data.timestamp);
-
-    // update the clock for the current video
-    if (this.playing && this.playing.id === data.id) {
-      // this.playing.setTime(data.time, data.timestamp);
-      this.playing.setTime(data.time, client.clockCorrected(data.timestamp));
+    if (this.playing.id === data.id) {
+      this.playing.setTime(data.time);
+      this.emit('video--clock', this.playing.clockData(), client);
+    }
+    else {
+      console.log(clc.red(`Got clock update for a different video. For: ${data.id}, Current: ${this.playing.id}`));
     }
   }
 
@@ -279,9 +224,11 @@ class Room {
    * Send packet to all clients in the room
    * @param {string} identifier the packet type identifier
    * @param {object} data data to send to the client
+   * @param {Client} ignore client to not send the packet to
    */
-  emit(identifier, data = {}) {
-    this.clients.forEach(client => client.send(identifier, data));
+  emit(identifier, data = {}, ignore = null) {
+    const clients = ignore ? Array.from(this.clients).filter(c => c !== ignore) : this.clients;
+    clients.forEach(client => client.send(identifier, data));
   }
 };
 

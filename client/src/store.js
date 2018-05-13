@@ -7,6 +7,7 @@ const store = new Vuex.Store({
   state: {
     is_online: false,
     im_the_host: false,
+    latest_ping: 0,
   },
   mutations: {
     TOGGLE_ONLINE(state, value) {
@@ -17,6 +18,9 @@ const store = new Vuex.Store({
       state.im_the_host = value;
       console.log('IM_THE_HOST', value);
     },
+    SET_LATEST_PING(state, ping) {
+      state.latest_ping = ping;
+    }
   },
 });
 

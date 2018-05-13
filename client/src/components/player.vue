@@ -4,10 +4,10 @@
       <div id="player__iframe"></div>
     </div>
     <div class="style-input">
-      <input type="text" class="input" placeholder="Paste a YouTube URL..." v-model="video_to_queue" @keyup.enter="requestVideo()" />
-      <button type="submit" class="button" @click="requestVideo()">Queue</button>
+      <input type="text" class="input" placeholder="Paste a YouTube URL..." v-model="video_to_queue" @keyup.enter="client_requestVideo()" />
+      <button type="submit" class="button" @click="client_requestVideo()">Queue</button>
     </div>
-    <button @click="debugQueue()" style="margin-top:10px;">Queue Debug Videos</button>
+    <button @click="client_debugQueue()" style="margin-top:10px;">Queue Debug Videos</button>
   </main>
 </template>
 
@@ -28,10 +28,6 @@
       current: null,
       when_ready: null,
       resync_clock: false,
-      clock: {
-        timer: null,
-        resolution: 3000, // sync the clocks every 3 seconds
-      },
     }),
     created() {
       const script = document.createElement('script');
@@ -41,16 +37,20 @@
       document.head.appendChild(script);
     },
     mounted() {
-      this.$root.$on('server__video--play', data => this.playVideo(data));
+      this.$root.$on('server__video--play', data => this.server_playVideo(data));
       this.$root.$on('server__video--update', data => {});
-      this.$root.$on('server__video--state', data => this.updatePlayerState(data.state));
-      this.$root.$on('server__room--update', data => this.playVideo(data.playing));
+      this.$root.$on('server__video--state', data => this.server_updatePlayerState(data));
+      this.$root.$on('server__video--playback-rate', data => this.server_updatePlaybackRate(data));
+      this.$root.$on('server__room--update', data => {
+        console.log('server__room--update', data);
+        this.server_playVideo(data.playing);
+      });
 
       this.$root.$on('server__video--clock', data => {
         console.log('server__video--clock', data);
 
         if (this.current.id === data.id) {
-          const time = this.calcNetworkPlayerTime(data);
+          const time = this.calcNetworkPlayerTime(data.time);
           if (time !== false) {
             this.player.seekTo(time, true);
             console.log('FORCED RESYNC', time);
@@ -58,6 +58,13 @@
         }
         else {
           console.error('got clock update for a different video!', data.id, this.current.id);
+        }
+      });
+
+      this.$root.$on('server__pong', ping => {
+        // send the clock update
+        if (this.is_host && this.current && ((this.flags & PLY_READY) && !(this.flags & PLY_PAUSED))) {
+          this.$root.$emit('send', { type: 'video--clock', id: this.current.id, time: this.client_getNetworkPlayerTime() });
         }
       });
 
@@ -73,84 +80,38 @@
             'rel': 0, // don't show any related videos
           },
           events: {
-            'onReady': this.playerReady,
-            'onStateChange': this.playerStateChange,
-            'onPlaybackRateChange': this.playerPlaybackRateChange,
+            'onReady': this.client_playerReady,
+            'onStateChange': this.client_playerStateChange,
+            'onPlaybackRateChange': this.client_playerPlaybackRateChange,
           },
         })
       };
     },
     methods: {
-      clockTick() {
-        if (this.is_online && this.current && ((this.flags & PLY_READY) && !(this.flags & PLY_PAUSED))) {
-          this.$root.$emit('send', {
-            type: 'video--clock',
-            id: this.current.id,
-            time: this.player.getCurrentTime(),
-            timestamp: Date.now(),
-          });
-        }
-      },
-      calcNetworkPlayerTime({ time, timestamp }, ignore_delta = false) {
-        console.log(`calcNetworkPlayerTime(${time}, ${timestamp})`);
-
-        console.log('timestamp:', Date.now(), timestamp, Date.now() - timestamp);
-
-        // extrapolate and calculate the delta
-        let t = (time + (Math.abs(Date.now() - timestamp) / 1000));
-        console.log('t:', t, this.player.getCurrentTime());
-        let delta = Math.abs(t - this.player.getCurrentTime());
-
-        console.log(` delta: ${delta}`);
-
-        // ignore if we are within the margin of error
-        if (!ignore_delta && delta < 0.8) {
-          return false;
-        }
-
-        return t;
-      },
-      playVideo(video) {
-        if (video && (this.flags & PLY_READY)) {
-          console.log('playing video', video);
-
-          this.player.loadVideoById(video.video_id, video.time ? this.calcNetworkPlayerTime(video, true) : 0, 'default');
-          this.current = video;
-          document.title = `${video.title} - YouTube Sync`;
-
-          // set the playback rate if we need to
-          if (typeof video.rate !== 'undefined') {
-            console.log('updating playback rate to', video.rate);
-            this.player.setPlaybackRate(video.rate);
-          }
-        }
-        else if (video && !(this.flags & PLY_READY)) {
-          console.log('video will start when player is loaded...');
-          this.when_ready = video;
-          this.flags |= PLY_WAITING;
-        }
-      },
-      playerReady(event) {
+      // #######################################
+      // ## CLIENT RELATED METHODS
+      // #######################################
+      client_playerReady() {
         console.log('PlayerReady');
         
         this.flags |= PLY_READY;
 
         // do we have a video ready to play?
         if (this.flags & PLY_WAITING) {
-          this.playVideo(this.when_ready);
+          this.server_playVideo(this.when_ready);
           this.when_ready = null;
           this.resync_clock = true;
           this.flags &= ~PLY_WAITING;
         }
       },
-      playerStateChange(event) {
+      client_playerStateChange(event) {
         // once the video has started playing, update the states if we need to
         if (event.data === YT.PlayerState.PLAYING) {
           console.log(`playerStateChange - client: ${event.data}, server: ${this.current.state}`);
 
           // if the current video state isn't playing, update it now
           if (typeof this.current.state !== 'undefined' && this.current.state !== YT.PlayerState.PLAYING) {
-            this.updatePlayerState(this.current.state);
+            this.server_updatePlayerState(this.current);
           }
 
           // resync the clock if we need to
@@ -172,27 +133,25 @@
 
         switch (event.data) {
           case YT.PlayerState.PLAYING: {
-            this.$root.$emit('send', { type: 'video--update', state: YT.PlayerState.PLAYING, time: this.player.getCurrentTime(), timestamp: Date.now() });
-
+            this.$root.$emit('send', { type: 'video--update', state: YT.PlayerState.PLAYING, time: this.client_getNetworkPlayerTime() });
             this.flags &= ~PLY_PAUSED;
             break;
           }
 
           case YT.PlayerState.PAUSED: {
-            this.$root.$emit('send', { type: 'video--update', state: YT.PlayerState.PAUSED, time: this.player.getCurrentTime(), timestamp: Date.now() });
-
+            this.$root.$emit('send', { type: 'video--update', state: YT.PlayerState.PAUSED, time: this.client_getNetworkPlayerTime() });
             this.flags |= PLY_PAUSED;
             break;
           }
 
           case YT.PlayerState.ENDED: {
-            this.$root.$emit('send', { type: 'video--update', state: YT.PlayerState.ENDED, time: 0, timestamp: Date.now() });
+            this.$root.$emit('send', { type: 'video--update', state: YT.PlayerState.ENDED });
             this.flags |= PLY_PAUSED;
             break;
           }
         }
       },
-      playerPlaybackRateChange(event) {
+      client_playerPlaybackRateChange(event) {
         console.log('PlayerPlaybackRateChange');
 
         this.$root.$emit('send', {
@@ -200,7 +159,7 @@
           rate: event.data
         });
       },
-      requestVideo() {
+      client_requestVideo() {
         // make sure we have something to queue
         if (!this.video_to_queue) {
           return;
@@ -246,48 +205,18 @@
           })
           .catch(err => console.error(err));
       },
-      updatePlayerState(state) {
+      // client_changeVideo(video) {
+      //   console.log(`requesting change to "${video.title}" (${video.id})...`);
+      //   this.$root.$emit('send', { type: 'video--change', id: video.id });
+      // },
+      client_getNetworkPlayerTime() {
         if (!(this.flags & PLY_READY)) {
-          console.error(`youtube player isn't ready yet!`);
+          return 0;
         }
 
-        this.current.state = state;
-        
-        switch (state) {
-          case YT.PlayerState.PLAYING: {
-            if (this.flags & PLY_PAUSED) {
-              this.player.playVideo();
-              this.flags &= ~PLY_PAUSED;
-
-              console.log('video playing!');
-            }
-
-            break;
-          }
-
-          case YT.PlayerState.PAUSED: {
-            if (!(this.flags & PLY_PAUSED)) {
-              this.player.pauseVideo();
-              this.flags |= PLY_PAUSED;
-
-              console.log('video paused!');
-            }
-
-            break;
-          }
-
-          case YT.PlayerState.ENDED: {
-            this.player.stopVideo();
-            console.log('video is ended!');
-            break;
-          }
-        }
+        return (this.player.getCurrentTime() + (this.ping / 1000));
       },
-      changeVideo(video) {
-        console.log(`requesting change to "${video.title}" (${video.id})...`);
-        this.$root.$emit('send', { type: 'video--change', id: video.id });
-      },
-      debugQueue() {
+      client_debugQueue() {
         this.$root.$emit('send', {
           type: 'queue--add',
           video_id: 'oySqE3z99AE',
@@ -312,31 +241,112 @@
           thumbnail: 'https://i.ytimg.com/vi/-fCtvurGDD8/hqdefault.jpg',
         });
       },
+
+
+
+
+
+
+      // #######################################
+      // ## SERVER RELATED METHODS
+      // #######################################
+      server_playVideo(video) {
+        if (video && (this.flags & PLY_READY)) {
+          console.log('playVideo', video);
+
+          let time = video.time ? video.time : 0;
+
+          // if the video is playing, calculate the network player time
+          if (true || video.state === 1) {
+            time = this.calcNetworkPlayerTime(video.time, true);
+          }
+
+          console.log(`playing video at`, time);
+
+          this.current = video;
+          this.player.loadVideoById(video.video_id, time, 'default');
+          document.title = `${video.title} - YouTube Sync`;
+
+          // set the playback rate if we need to
+          if (typeof video.rate !== 'undefined') {
+            console.log(`playVideo - setting video playback rate to '${video.rate}'...`);
+            this.player.setPlaybackRate(video.rate);
+          }
+        }
+        else if (video && !(this.flags & PLY_READY)) {
+          console.warn(`playVideo - player isn't ready yet. video will start when playing is loaded.`);
+          this.when_ready = video;
+          this.flags |= PLY_WAITING;
+        }
+      },
+      server_updatePlayerState({ state, time = 0 }) {
+        if (!(this.flags & PLY_READY)) {
+          console.error(`youtube player isn't ready yet!`);
+        }
+
+        console.log(state,time);
+
+        this.current.state = state;
+        
+        switch (state) {
+          case YT.PlayerState.PLAYING: {
+            if (this.flags & PLY_PAUSED) {
+              //this.player.seekTo(this.calcNetworkPlayerTime(time, true), true);
+              this.player.playVideo();
+              this.flags &= ~PLY_PAUSED;
+
+              console.log('video playing!');
+            }
+
+            break;
+          }
+
+          case YT.PlayerState.PAUSED: {
+            if (!(this.flags & PLY_PAUSED)) {
+              this.player.pauseVideo();
+              setTimeout(() => this.player.seekTo(this.calcNetworkPlayerTime(time, true), true), 100);
+              this.flags |= PLY_PAUSED;
+
+              console.log('video paused!');
+            }
+
+            break;
+          }
+
+          case YT.PlayerState.ENDED: {
+            this.player.stopVideo();
+            console.log('video is ended!');
+            break;
+          }
+        }
+      },
+      server_updatePlaybackRate(data) {
+        console.log(`update playback rate`);
+        console.log(data);
+
+        if (!(this.flags & PLY_READY)) {
+        }
+
+        this.player.setPlaybackRate(data.rate);
+      },
+      calcNetworkPlayerTime(time, ignore_delta = false) {
+        console.log(`calcNetworkPlayerTime(${time})`);
+
+        time = (time + (this.ping / 1000));
+        const delta = Math.abs(time - this.player.getCurrentTime());
+        console.log(` delta: ${delta}`);
+
+        if (!ignore_delta && delta < 0.6) {
+          return false;
+        }
+
+        return time;
+      },
     },
     computed: {
       is_online: () => store.state.is_online,
       is_host: () => store.state.im_the_host,
-    },
-    watch: {
-      // if we are the new room host, start the clock!
-      is_host(state) {
-        if (state) {
-          // just in case we have another clock running for some strange reason
-          if (this.clock.timer) {
-            clearInterval(this.clock.timer);
-          }
-
-          // send a single tick now to get the server up to speed with where we're currently at
-          this.clockTick();
-
-          // start the clock to sync the video
-          this.clock.timer = setInterval(this.clockTick.bind(this), this.clock.resolution);
-        }
-        else if (this.clock.timer) {
-          clearInterval(this.clock.timer);
-          this.clock.timer = null;
-        }
-      },
+      ping: () => store.state.latest_ping,
     },
   });
 </script>

@@ -6,7 +6,7 @@ const clc = require('cli-color');
 
 class Server {
   constructor(port = 8888) {
-    this.io = require('socket.io')(port);
+    this.io = require('socket.io')(port, { pingInterval: 2500 });
     this.clients = new Set();
     this.rooms = [];
 

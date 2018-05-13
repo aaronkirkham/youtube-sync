@@ -7,9 +7,8 @@ class Video {
     this.title = title;
     this.thumbnail = thumbnail;
     this.state = 0;
-    this.current_time = 0;
+    this.time = 0;
     this.playback_rate = 1;
-    this.clock_time = 0;
   }
 
   /**
@@ -20,28 +19,33 @@ class Video {
   }
 
   /**
-   * Get the current video extra data
+   * Get the current video full data
    */
-  extdata() {
-    return { state: this.state, time: this.current_time, rate: this.playback_rate, timestamp: this.clock_time, ...this.data() };
+  fullData() {
+    return { ...this.data(), state: this.state, rate: this.playback_rate, time: this.time };
+  }
+
+  /**
+   * Get the current video clock data
+   */
+  clockData() {
+    return { id: this.id, time: this.time };
   }
 
   /**
    * Set the current video state
-   * @param {integer} The target state
+   * @param {integer} state The target state
    */
   setState(state) {
     this.state = state;
   }
 
   /**
-   * Set the current video time and clock time
+   * Set the current video time
    * @param {float} time The target time
-   * @param {float} clock_time The target clock time
    */
-  setTime(time, clock_time) {
-    this.current_time = time;
-    this.clock_time = clock_time;
+  setTime(time) {
+    this.time = time;
   }
 
   /**
