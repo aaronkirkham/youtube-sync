@@ -52,7 +52,7 @@ class Video {
 
   /**
    * Get the current video time
-   * Return value will be interpolated based on the last sync time
+   * Return value will be extrapolated based on the last sync time
    */
   getTime() {
     // YT.PlayerState.PLAYING
