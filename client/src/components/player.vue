@@ -238,12 +238,6 @@
           thumbnail: 'https://i.ytimg.com/vi/-fCtvurGDD8/hqdefault.jpg',
         });
       },
-
-
-
-
-
-
       // #######################################
       // ## SERVER RELATED METHODS
       // #######################################
@@ -281,14 +275,13 @@
           console.error(`youtube player isn't ready yet!`);
         }
 
-        console.log(state,time);
+        console.log(state, time);
 
         this.current.state = state;
         
         switch (state) {
           case YT.PlayerState.PLAYING: {
             if (this.flags & PLY_PAUSED) {
-              //this.player.seekTo(this.calcNetworkPlayerTime(time, true), true);
               this.player.playVideo();
               this.flags &= ~PLY_PAUSED;
 
@@ -300,8 +293,8 @@
 
           case YT.PlayerState.PAUSED: {
             if (!(this.flags & PLY_PAUSED)) {
+              this.player.seekTo(this.calcNetworkPlayerTime(time, true), true);
               this.player.pauseVideo();
-              setTimeout(() => this.player.seekTo(this.calcNetworkPlayerTime(time, true), true), 100);
               this.flags |= PLY_PAUSED;
 
               console.log('video paused!');

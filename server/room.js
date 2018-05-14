@@ -164,7 +164,7 @@ class Room {
 
       // if the video didn't end, update the clients immediately
       if (data.state !== 0) {
-        this.emit('video--state', { id: this.playing.id, state: this.playing.state, time: this.playing.time }, client);
+        this.emit('video--state', { id: this.playing.id, state: this.playing.state, time: this.playing.getTime() }, client);
       }
     }
   }

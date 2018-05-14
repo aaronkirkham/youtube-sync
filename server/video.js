@@ -9,6 +9,7 @@ class Video {
     this.state = 0;
     this.time = 0;
     this.playback_rate = 1;
+    this.last_sync_time = 0;
   }
 
   /**
@@ -22,14 +23,14 @@ class Video {
    * Get the current video full data
    */
   fullData() {
-    return { ...this.data(), state: this.state, rate: this.playback_rate, time: this.time };
+    return { ...this.data(), state: this.state, rate: this.playback_rate, time: this.getTime() };
   }
 
   /**
    * Get the current video clock data
    */
   clockData() {
-    return { id: this.id, time: this.time };
+    return { id: this.id, time: this.getTime() };
   }
 
   /**
@@ -46,6 +47,20 @@ class Video {
    */
   setTime(time) {
     this.time = time;
+    this.last_sync_time = Date.now();
+  }
+
+  /**
+   * Get the current video time
+   * Return value will be interpolated based on the last sync time
+   */
+  getTime() {
+    // YT.PlayerState.PLAYING
+    if (this.state === 1) {
+      return (this.time + (Math.abs(Date.now() - this.last_sync_time) / 1000));
+    }
+
+    return this.time;
   }
 
   /**
