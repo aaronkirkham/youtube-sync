@@ -136,8 +136,6 @@ class Room {
    * Update video
    */
   updateVideo(client, data) {
-    console.log(`updateVideo`, data.state)
-
     if (this.playing) {
       this.playing.setState(data.state);
 
