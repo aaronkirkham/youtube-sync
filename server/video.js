@@ -6,7 +6,7 @@ class Video {
     this.video_id = video_id;
     this.title = title;
     this.thumbnail = thumbnail;
-    this.state = 0;
+    this.state = -1;
     this.time = 0;
     this.playback_rate = 1;
     this.last_sync_time = 0;

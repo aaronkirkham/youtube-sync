@@ -51,7 +51,6 @@
     },
     methods: {
       removeFromQueue(video) {
-        console.log(`removing "${video.title}" (${video.id}) from queue...`);
         this.$root.$emit('send', { type: 'queue--remove', id: video.id });
       },
       queueSort(end) {
@@ -70,6 +69,14 @@
     },
     computed: {
       is_online: () => store.state.is_online,
+    },
+    watch: {
+      is_online(state) {
+        // clear the playlist if we go offline
+        if (state === false) {
+          this.items = [];
+        }
+      },
     },
   });
 </script>
