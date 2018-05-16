@@ -7,7 +7,7 @@
       <input type="text" class="input" placeholder="Paste a YouTube URL..." v-model="video_to_queue" @keyup.enter="client_requestVideo()" />
       <button type="submit" class="button" @click="client_requestVideo()">Queue</button>
     </div>
-    <button @click="client_debugQueue()" style="margin-top:10px;">Queue Debug Videos</button>
+    <button @click="client_debugQueue()" style="position:absolute;bottom:50px;">Queue Debug Videos</button>
   </main>
 </template>
 

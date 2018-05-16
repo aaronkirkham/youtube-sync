@@ -21,11 +21,17 @@
   $this: &;
 
   &__queue {
-    grid-area: aside;
+    position: relative;
+    grid-column: 3;
   }
 
   &__queue-container {
-    margin-top: -5px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow-y: scroll;
 
     // we don't want to use any transitions if we are the ones moving the queue items
     &:not(.no-sort-animation) {

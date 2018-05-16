@@ -1,5 +1,5 @@
 .player {
-  grid-area: main;
+  grid-column: 1 / 3;
 
   &__iframe-container {
     position: relative;
