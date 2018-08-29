@@ -20,21 +20,21 @@
   "homepage": "https://github.com/aaronkirkham/youtube-sync#readme",
   "devDependencies": {
     "babel-core": "^6.26.3",
-    "babel-loader": "^7.1.4",
+    "babel-loader": "^7.1.5",
     "babel-preset-env": "^1.6.1",
-    "copy-webpack-plugin": "^4.5.1",
+    "copy-webpack-plugin": "^4.5.2",
     "css-loader": "^0.28.11",
-    "node-sass": "^4.9.0",
+    "node-sass": "^4.9.3",
     "sass-loader": "^6.0.7",
     "style-loader": "^0.19.1",
-    "vue-loader": "^13.7.1",
-    "vue-template-compiler": "^2.5.16",
+    "vue-loader": "^13.7.3",
+    "vue-template-compiler": "^2.5.17",
     "webpack": "^3.11.0",
-    "webpack-dev-server": "^2.11.2"
+    "webpack-dev-server": "^2.11.3"
   },
   "dependencies": {
-    "socket.io": "^2.1.0",
-    "vue": "^2.5.16",
+    "socket.io": "^2.1.1",
+    "vue": "^2.5.17",
     "vue-router": "^3.0.1",
     "vuedraggable": "^2.16.0",
     "vuex": "^3.0.1"
