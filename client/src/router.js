@@ -11,7 +11,7 @@ const router = new VueRouter({
   routes: [
     { path: '/', name: 'index', component: Room },
     { path: '/:roomid', name: 'room', component: Room },
-  ]
+  ],
 });
 
 export default router;

@@ -12,15 +12,13 @@ const store = new Vuex.Store({
   mutations: {
     TOGGLE_ONLINE(state, value) {
       state.is_online = value;
-      console.log('IS_ONLINE', value);
     },
     IM_THE_HOST(state, value) {
       state.im_the_host = value;
-      console.log('IM_THE_HOST', value);
     },
     SET_LATEST_PING(state, ping) {
       state.latest_ping = ping;
-    }
+    },
   },
 });
 

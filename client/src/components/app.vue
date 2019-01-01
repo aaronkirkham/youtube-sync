@@ -2,7 +2,7 @@
   <div id="app">
     <header class="primary-header" role="banner">
       <div class="container">
-        <h1 class="logo">YouTube Sync <span v-if="!is_online">(OFFLINE)</span></h1>
+        <h1 class="logo">YouTube Sync<span v-if="!is_online"> (OFFLINE)</span></h1>
       </div>
     </header>
     <router-view></router-view>

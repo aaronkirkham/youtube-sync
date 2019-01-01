@@ -180,13 +180,13 @@
         // make sure the input url is valid
         const url_segments = this.video_to_queue.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/);
         if (url_segments === null) {
-          // TODO: error?
+          // TODO: error message
           return;
         }
 
         // make sure we have a valid id in the video url
         if (typeof url_segments[2] !== 'undefined' && url_segments[2].length === 0) {
-          // TODO: error?
+          // TODO: error message
           return;
         }
 
@@ -199,7 +199,7 @@
             console.log(data);
 
             const video_obj = {
-              video_id: url_segments[2],
+              id: url_segments[2],
               title: data.title,
               url: data.url,
               thumbnail: data.thumbnail_url,
@@ -231,7 +231,7 @@
       client_debugQueue() {
         this.$root.$emit('send', {
           type: 'queue--add',
-          video_id: 'oySqE3z99AE',
+          id: 'oySqE3z99AE',
           title: 'Hybrid Minds - Inside (ft. Emily Jones)',
           url: 'https://www.youtube.com/watch?v=oySqE3z99AE',
           thumbnail: 'https://i.ytimg.com/vi/oySqE3z99AE/hqdefault.jpg',
@@ -239,7 +239,7 @@
 
         this.$root.$emit('send', {
           type: 'queue--add',
-          video_id: 'JSxCc2e3BEE',
+          id: 'JSxCc2e3BEE',
           title: 'Hybrid Minds - Liquicity Winterfestival 2017',
           url: 'https://www.youtube.com/watch?v=JSxCc2e3BEE',
           thumbnail: 'https://i.ytimg.com/vi/JSxCc2e3BEE/hqdefault.jpg',
@@ -247,7 +247,7 @@
 
         this.$root.$emit('send', {
           type: 'queue--add',
-          video_id: '-fCtvurGDD8',
+          id: '-fCtvurGDD8',
           title: 'Birdy - Wings (Nu:Logic Remix)',
           url: 'https://www.youtube.com/watch?v=-fCtvurGDD8',
           thumbnail: 'https://i.ytimg.com/vi/-fCtvurGDD8/hqdefault.jpg',
@@ -276,7 +276,7 @@
           console.log(`playing video at`, time);
 
           this.current = video;
-          this.player.loadVideoById(video.video_id, time, 'default');
+          this.player.loadVideoById(video.videoId, time, 'default');
           document.title = `${video.title} - YouTube Sync`;
 
           // set the playback rate if we need to

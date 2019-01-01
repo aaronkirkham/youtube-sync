@@ -28,19 +28,19 @@ module.exports = {
       {
         test: /\.vue$/,
         use: 'vue-loader',
-      }
-    ]
+      },
+    ],
   },
   plugins: [
     new CopyWebpackPlugin([
       { from: './src/index.html' },
-      { from: './src/.htaccess' }
+      { from: './src/.htaccess' },
     ]),
   ],
   resolve: {
     extensions: ['.js', '.vue', '.json'],
     alias: {
-      'vue$': 'vue/dist/vue.common.js',
+      vue$: 'vue/dist/vue.common.js',
     },
   },
-}
+};
