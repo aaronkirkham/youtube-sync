@@ -6,7 +6,8 @@
   "scripts": {
     "build": "tsc",
     "watch": "tsc --watch",
-    "start": "tsc && node ./dist/index.js"
+    "start": "tsc && node ./dist/index.js",
+    "test": "tsc && mocha"
   },
   "repository": {
     "type": "git",
@@ -25,6 +26,8 @@
   "devDependencies": {
     "@types/cli-color": "^0.3.29",
     "@types/socket.io": "^2.1.2",
+    "chai": "^4.2.0",
+    "mocha": "^6.1.4",
     "tslint": "^5.12.0",
     "tslint-config-airbnb": "^5.11.1",
     "typescript": "^3.2.2"

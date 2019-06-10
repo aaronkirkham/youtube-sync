@@ -19,8 +19,9 @@ export class Server {
       let updateUrl = false;
 
       // do we have a room to connect to?
-      const referer = socket.handshake.headers.referer.replace(socket.handshake.headers.origin, '');
-      if (referer !== '/') {
+      let referer = socket.handshake.headers.referer;
+      referer = referer ? referer.replace(socket.handshake.headers.origin, '') : referer;
+      if (referer && referer !== '/') {
         // remove the leading slash
         id = referer.startsWith('/') ? referer.substr(1, referer.length) : referer;
       } else {

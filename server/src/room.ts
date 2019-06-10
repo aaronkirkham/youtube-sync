@@ -96,11 +96,10 @@ export class Room {
     if (index !== -1) {
       const removed = this.queue.splice(index, 1);
       if (removed.length !== 0) {
-        this.emit('queue--remove', {
-          id: removed[0].id,
-        });
+        const { id } = removed[0];
+        this.emit('queue--remove', { id });
       } else {
-        console.log(clc.red(`Tried to dequeue which doesn't exist. ${data.id}`));
+        console.log(clc.red(`Tried to dequeue a video which doesn't exist. ${data.id}`));
       }
     }
   }
@@ -176,7 +175,7 @@ export class Room {
    */
   nextVideo(client: Client): void {
     // only allow the host to skip the video
-    if (client !== this.host) {
+    if (!this.host.is(client)) {
       return;
     }
 
@@ -198,7 +197,7 @@ export class Room {
    */
   syncClock(client: Client, data: any): void {
     // only allow the host to sync the video clock
-    if (client !== this.host || !this.current) {
+    if (!this.host.is(client) || !this.current) {
       return;
     }
 
