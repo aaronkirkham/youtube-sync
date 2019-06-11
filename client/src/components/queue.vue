@@ -68,10 +68,10 @@
       },
     },
     computed: {
-      is_online: () => store.state.is_online,
+      isOnline: () => store.state.online,
     },
     watch: {
-      is_online(state) {
+      isOnline(state) {
         // clear the playlist if we go offline
         if (state === false) {
           this.items = [];

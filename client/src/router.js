@@ -1,7 +1,7 @@
 import Vue from 'vue';
 import VueRouter from 'vue-router';
 
-import Index from './components/routes/index.vue';
+// import Index from './components/routes/index.vue';
 import Room from './components/routes/room.vue';
 
 Vue.use(VueRouter);

@@ -3,23 +3,37 @@ import Vuex from 'vuex';
 
 Vue.use(Vuex);
 
-const store = new Vuex.Store({
-  state: {
-    is_online: false,
-    im_the_host: false,
-    latest_ping: 0,
-  },
-  mutations: {
-    TOGGLE_ONLINE(state, value) {
-      state.is_online = value;
-    },
-    IM_THE_HOST(state, value) {
-      state.im_the_host = value;
-    },
-    SET_LATEST_PING(state, ping) {
-      state.latest_ping = ping;
-    },
-  },
-});
+const getters = {
+  online: state => state.online,
+  host: state => state.host,
+  ping: state => state.ping,
+};
 
-export default store;
+const actions = {
+};
+
+const mutations = {
+  setOnline(state, online) {
+    state.online = online;
+  },
+  setHost(state, host) {
+    state.host = host;
+  },
+  setPing(state, ping) {
+    state.ping = ping;
+  },
+};
+
+const state = {
+  online: false,
+  host: false,
+  ping: 0,
+};
+
+export default new Vuex.Store({
+  struct: true,
+  state,
+  getters,
+  actions,
+  mutations,
+});

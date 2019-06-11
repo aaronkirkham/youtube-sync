@@ -15,10 +15,11 @@
   import Vue from 'vue';
   import store from '../store';
 
-  // player flags
-  const PLY_READY = 1;
-  const PLY_PAUSED = 2;
-  const PLY_WAITING = 4;
+  const PlayerFlags = {
+    Ready: 1,
+    Paused: 2,
+    Waiting: 4,
+  };
 
   export default Vue.component('youtube-player', {
     data: () => ({
@@ -45,7 +46,7 @@
         this.server_updatePlayerState(data);
       });
       this.$root.$on('server__video--playback-rate', data => this.server_updatePlaybackRate(data));
-      this.$root.$on('server__room--update', data => this.server_playVideo(data.playing));
+      this.$root.$on('server__room--update', data => this.server_playVideo(data.current));
 
       this.$root.$on('server__video--clock', data => {
         console.log('server__video--clock', data);
@@ -64,8 +65,12 @@
 
       this.$root.$on('server__pong', ping => {
         // send the clock update
-        if (this.is_host && this.current && ((this.flags & PLY_READY) && !(this.flags & PLY_PAUSED))) {
-          this.$root.$emit('send', { type: 'video--clock', id: this.current.id, time: this.client_getNetworkPlayerTime() });
+        if (this.isHost && this.current && ((this.flags & PlayerFlags.Ready) && !(this.flags & PlayerFlags.Paused))) {
+          this.$root.$emit('send', {
+            type: 'video--clock',
+            id: this.current.id,
+            time: this.client_getNetworkPlayerTime(),
+          });
         }
       });
 
@@ -94,17 +99,17 @@
         });
       },
       client_playerReady() {
-        this.flags |= PLY_READY;
+        this.flags |= PlayerFlags.Ready;
 
         // do we have a video ready to play?
-        if (this.flags & PLY_WAITING) {
+        if (this.flags & PlayerFlags.Waiting) {
           if (this.when_ready) {
             this.server_playVideo(this.when_ready);
             this.when_ready = null;
             this.resync_clock = true;
           }
 
-          this.flags &= ~PLY_WAITING;
+          this.flags &= ~PlayerFlags.Waiting;
         }
       },
       client_playerStateChange(event) {
@@ -148,17 +153,17 @@
         // playing - send update and remove the paused flag
         if (state === YT.PlayerState.PLAYING) {
           this.$root.$emit('send', { type: 'video--update', state: YT.PlayerState.PLAYING, time: this.client_getNetworkPlayerTime() });
-          this.flags &= ~PLY_PAUSED;
+          this.flags &= ~PlayerFlags.Paused;
         }
         // paused - send update and set the paused flag
         else if (state === YT.PlayerState.PAUSED) {
           this.$root.$emit('send', { type: 'video--update', state: YT.PlayerState.PAUSED, time: this.client_getNetworkPlayerTime() });
-          this.flags |= PLY_PAUSED;
+          this.flags |= PlayerFlags.Paused;
         }
         // ended - send update and set the paused flag
         else if (state === YT.PlayerState.ENDED) {
           this.$root.$emit('send', { type: 'video--update', state: YT.PlayerState.ENDED });
-          this.flags |= PLY_PAUSED;
+          this.flags |= PlayerFlags.Paused;
         }
 
         console.log(`sent update-state`);
@@ -206,7 +211,7 @@
             };
 
             // send to the server if we are connected
-            if (this.is_online) {
+            if (this.isOnline) {
               this.$root.$emit('send', Object.assign({ type: 'queue--add' }, video_obj));
             }
             else {
@@ -222,7 +227,7 @@
       //   this.$root.$emit('send', { type: 'video--change', id: video.id });
       // },
       client_getNetworkPlayerTime() {
-        if (!(this.flags & PLY_READY)) {
+        if (!(this.flags & PlayerFlags.Ready)) {
           return 0;
         }
 
@@ -257,9 +262,8 @@
       // ## SERVER RELATED METHODS
       // #######################################
       server_playVideo(video) {
-        if (video && (this.flags & PLY_READY)) {
-          console.log('server_playVideo', video);
-
+        console.log('server_playVideo');
+        if (video && (this.flags & PlayerFlags.Ready)) {
           let time = video.time ? video.time : 0;
 
           // if the video is playing, calculate the network player time
@@ -285,14 +289,14 @@
             this.player.setPlaybackRate(video.rate);
           }
         }
-        else if (video && !(this.flags & PLY_READY)) {
+        else if (video && !(this.flags & PlayerFlags.Ready)) {
           console.warn(`playVideo - player isn't ready yet. video will start when playing is loaded.`);
           this.when_ready = video;
-          this.flags |= PLY_WAITING;
+          this.flags |= PlayerFlags.Waiting;
         }
       },
       server_updatePlayerState({ state, time = 0 }) {
-        if (!(this.flags & PLY_READY)) {
+        if (!(this.flags & PlayerFlags.Ready)) {
           console.error(`server_updatePlayerState - YouTube player isn't ready yet!`);
         }
 
@@ -304,24 +308,24 @@
 
         if (state === YT.PlayerState.PLAYING) {
           this.player.playVideo();
-          this.flags &= ~PLY_PAUSED;
+          this.flags &= ~PlayerFlags.Paused;
         }
         else if (state === YT.PlayerState.PAUSED) {
           this.player.seekTo(time, true);
           this.player.pauseVideo();
-          this.flags |= PLY_PAUSED;
+          this.flags |= PlayerFlags.Paused;
         }
         else if (state === YT.PlayerState.ENDED) {
           this.player.stopVideo();
-          this.flags |= PLY_PAUSED;
+          this.flags |= PlayerFlags.Paused;
         }
       },
       server_updatePlaybackRate(data) {
         console.log(`update playback rate`);
         console.log(data);
 
-        if (!(this.flags & PLY_READY)) {
-        }
+        // if (!(this.flags & PlayerFlags.Ready)) {
+        // }
 
         this.player.setPlaybackRate(data.rate);
       },
@@ -332,6 +336,8 @@
         const delta = Math.abs(time - this.player.getCurrentTime());
         console.log(` delta: ${delta}`);
 
+        this.$root.$emit('debugPlayerDelta', delta);
+
         if (!ignore_delta && delta < 0.6) {
           return false;
         }
@@ -340,14 +346,14 @@
       },
     },
     computed: {
-      is_online: () => store.state.is_online,
-      is_host: () => store.state.im_the_host,
-      ping: () => store.state.latest_ping,
+      isOnline: () => store.state.online,
+      isHost: () => store.state.host,
+      ping: () => store.state.ping,
     },
     watch: {
-      is_online(state) {
+      isOnline(state) {
         if (state === false) {
-          const flags = this.flags;
+          const prevflags = this.flags;
 
           // reset
           this.video_to_queue = '';
@@ -358,7 +364,7 @@
           this.ignore_player_state = true;
 
           // destroy the player
-          if ((flags & PLY_READY)) {
+          if (prevflags & PlayerFlags.Ready) {
             this.player.destroy();
             this.client_createPlayer();
           }

@@ -1,0 +1,29 @@
+{
+  "extends": "airbnb-base",
+  "env": {
+    "node": true,
+    "es6": true,
+    "browser": true
+  },
+  "rules": {
+    "linebreak-style": 0,
+    "no-console": 0,
+    "no-param-reassign": [
+      "error",
+      {
+        "props": true,
+        "ignorePropertyModificationsFor": [
+          "state",
+          "acc",
+          "e",
+          "ctx",
+          "req",
+          "request",
+          "res",
+          "response",
+          "$scope"
+        ]
+      }
+    ]
+  }
+}
