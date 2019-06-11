@@ -121,18 +121,21 @@ describe('Server', function() {
           'referer': server.rooms[0].id,
         },
       }));
-      client2.socket.on('room--update', data => {
-        expect(data.current).to.be.an('object');
-        expect(data.queue).to.be.an('array');
-        expect(data.current).to.have.property('videoId', '3');
-        done();
+
+      client2.socket.on('recv', data => {
+        if (data.type === 'room--update') {
+          expect(data.current).to.be.an('object');
+          expect(data.queue).to.be.an('array');
+          expect(data.current).to.have.property('videoId', '3');
+          done();
+        }
       });
     });
 
     after(() => client2.socket.disconnect());
     afterEach(() => client2.offAll());
 
-    it('was added the rooms client list', function() {
+    it('was added to the rooms client list', function() {
       expect(server.clients).to.have.property('size', 2);
       expect(server.rooms[0].clients).to.have.property('size', 2);
     });
@@ -147,14 +150,16 @@ describe('Server', function() {
 
       let callback_counter = 0;
       const callback = function(data) {
-        expect(data).to.have.property('videoId', video.id);
-        if (++callback_counter === 2) {
-          done();
+        if (data.type === 'queue--add') {
+          expect(data).to.have.property('videoId', video.id);
+          if (++callback_counter === 2) {
+            done();
+          }
         }
       };
 
-      host.socket.on('queue--add', callback);
-      client2.socket.on('queue--add', callback);
+      host.socket.on('recv', callback);
+      client2.socket.on('recv', callback);
 
       server.rooms[0].queueAdd(client2, video);
     });

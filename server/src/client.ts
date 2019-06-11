@@ -29,12 +29,10 @@ export class Client {
    * @param data Data to send to the client
    */
   send(identifier: string, data: object = {}): void {
-    // this.socket.emit('recv', {
-    //   ...data,
-    //   type: identifier,
-    // });
-
-    this.socket.emit(identifier, data);
+    this.socket.emit('recv', {
+      ...data,
+      type: identifier,
+    });
   }
 
   /**
