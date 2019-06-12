@@ -22,15 +22,17 @@
   };
 
   export default Vue.component('youtube-player', {
-    data: () => ({
-      player: null,
-      video_to_queue: '',
-      flags: 0,
-      current: null,
-      when_ready: null,
-      resync_clock: false,
-      ignore_player_state: true,
-    }),
+    data() {
+      return {
+        player: null,
+        video_to_queue: '',
+        flags: 0,
+        current: null,
+        when_ready: null,
+        resync_clock: false,
+        ignore_player_state: true,
+      };
+    },
     created() {
       const script = document.createElement('script');
       script.setAttribute('async', true);
@@ -373,3 +375,29 @@
     },
   });
 </script>
+
+<style lang="scss">
+  @import '../mixins.scss';
+
+  .player {
+    grid-column: 1 / 3;
+
+    // 16:9 player aspect ratio
+    .player__iframe-container {
+      position: relative;
+      padding-bottom: 56.25%;
+      height: 0;
+      overflow: hidden;
+      margin-bottom: 20px;
+      border-radius: 2px;
+
+      iframe {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+      }
+    }
+  }
+</style>

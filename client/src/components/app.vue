@@ -1,25 +1,12 @@
 <template>
   <div id="app">
-    <header class="primary-header" role="banner">
+    <!-- <header class="primary-header" role="banner">
       <div class="container">
         <h1 class="logo">YouTube Sync<span v-if="!isOnline"> (OFFLINE)</span></h1>
       </div>
-    </header>
+    </header> -->
     <router-view></router-view>
-    <table class="debug-view" style="font-size:16px;" v-if="showDebugView">
-      <tr>
-        <td>Ping (ms):</td>
-        <td>{{ ping }}</td>
-      </tr>
-      <tr>
-        <td>Is Host:</td>
-        <td>{{ isHost ? 'Yes' : 'No' }}</td>
-      </tr>
-      <tr>
-        <td>Player Delta:</td>
-        <td :style="{ color: playerDeltaColour() }">{{ delta.toFixed(4) }}</td>
-      </tr>
-    </table>
+    <debug-view v-if="showDebugView"></debug-view>
   </div>
 </template>
 
@@ -28,14 +15,20 @@
   import router from '../router';
   import io from 'socket.io-client';
 
+  import DebugView from './debug';
+
   export default {
     el: 'app',
     store,
     router,
-    data: () => ({ 
-      socket: null,
-      delta: 0,
-    }),
+    components: {
+      DebugView
+    },
+    data() {
+      return {
+        socket: null,
+      };
+    },
     mounted() {
       this.socket = io('http://localhost:8888');//, { reconnection: false, query: `timestamp=${Date.now()}` });
       this.socket.on('connect', () => this.$store.commit('setOnline', true));
@@ -59,22 +52,38 @@
         this.$store.commit('setPing', ms);
         this.$emit(`server__pong`, ms);
       });
-
-      //
-      this.$on('debugPlayerDelta', delta => this.delta = delta);
-    },
-    methods: {
-      playerDeltaColour() {
-        if (this.delta > 0.4) return 'rgb(255, 0, 0)'
-        else if (this.delta > 0.25) return 'rgb(255, 69, 0)';
-        return 'rgb(255, 255, 255)';
-      },
     },
     computed: {
-      isOnline: () => store.state.online,
-      isHost: () => store.state.host,
-      ping: () => store.state.ping,
       showDebugView: () => process.env.mode === 'development',
     },
   };
 </script>
+
+<style lang="scss">
+  @import '~normalize.css/normalize.css';
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html, body {
+    height: 100vh;
+  }
+
+  body {
+    background-image: radial-gradient(circle at 0% 0%, #373b52, #252736 51%, #1d1e26);
+    font-family: 'PT Sans', sans-serif;
+    font-weight: 700;
+    color: #ffffff;
+    padding: 25px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior-y: none;
+  }
+
+  #app {
+    display: grid;
+    grid-gap: 50px;
+    grid-template-columns: auto auto 30%;
+  }
+</style>
