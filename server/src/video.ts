@@ -119,4 +119,11 @@ export class Video {
   setPlaybackRate(rate: number): void {
     this.playbackRate = rate;
   }
+
+  /**
+   * Getter to test if the video has ended
+   */
+  hasEnded(): boolean {
+    return this.state === 0;
+  }
 }

@@ -42,9 +42,6 @@ export class Room {
         queue: this.queue.map(video => video.data()),
       });
 
-      console.log('sending current video state to client');
-      console.log(this.current.stateData());
-
       // TODO: need to keep track of how long ago the last player time was synced
       // so if a user joins right after the last sync, they won't be 2500ms behind
       // the current player time time += (Math.abs(Date.now() - last_sync_time) / 1000);
@@ -78,7 +75,7 @@ export class Room {
     const video = new Video(data);
 
     // add the video to the queue if we need to
-    if (this.current) {
+    if (this.current && !this.current.hasEnded()) {
       this.queue.push(video);
       this.emit('queue--add', video.data());
     } else {
