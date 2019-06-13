@@ -15,22 +15,23 @@
   import store from '../store';
 
   const PlayerFlags = {
-    Ready: 1,
-    Paused: 2,
-    Waiting: 4,
-    Seeking: 8,
+    Ready: 1,                 // player is ready to rock
+    Paused: 2,                // current video is paused
+    Ended: 4,                 // current video has ended
+    Seeking: 8,               // UNUSED AT THE MINUTE
+    WaitForTargetState: 16,   // waiting for player to reach the target state
+    ForceUpdateStates: 32,    // states should be updated instantly
   };
 
   export default Vue.component('youtube-player', {
     data() {
       return {
         player: null,
-        videoToQueue: 'https://www.youtube.com/watch?v=hAxSVf7zoD8',
         flags: 0,
+        videoToQueue: 'https://www.youtube.com/watch?v=hAxSVf7zoD8',
         currentVideo: null,
+        currentState: -1, // unstarted
         videoToPlayWhenReady: null,
-        resyncClock: false,
-        ignorePlayerState: true,
       };
     },
     created() {
@@ -41,15 +42,13 @@
     },
     mounted() {
       this.$root.$on('server__video--play', this.play);
-      this.$root.$on('server__video--state', (data) => {
-        this.ignorePlayerState = true;
-        this.updateState(data);
-      });
+      this.$root.$on('server__video--state', this.updateState);
       this.$root.$on('server__video--playbackrate', ({ rate }) => this.setPlaybackRate(rate));
       this.$root.$on('server__room--update', ({ current }) => this.play(current));
 
       this.$root.$on('server__video--clock', (data) => {
-        console.log('server__video--clock', data);
+        if (this.currentState === -1) return;
+        else if (this.flags & PlayerFlags.WaitForTargetState) return;
 
         if (this.currentVideo.id === data.id) {
           const time = this.calcNetworkPlayerTime(data.time);
@@ -80,10 +79,11 @@
        * Start playing a video
        */
       play(video) {
-        if (!video) {
-          console.error('invalid video!');
-          return;
-        }
+        if (!video) return;
+
+        // if (this.flags & PlayerFlags.Ended) {
+        //   console.warn('Play - Ended flag is set. Probably switching to the next video in the queue!');
+        // }
 
         if (this.flags & PlayerFlags.Ready) {
           let time = video.time ? video.time : 0;
@@ -97,21 +97,22 @@
             video.state = -1; // unstarted
           }
 
-          console.log(`playing video at`, time);
+          console.log(`Play - Loading video... Time: ${time}, TargetState: ${video.state}`);
 
           this.currentVideo = video;
+          this.currentState = -1;
           this.player.loadVideoById(video.videoId, time, 'default');
           document.title = `${video.title} - YouTube Sync`;
 
           // set the playback rate if we need to
           if (typeof video.rate !== 'undefined') {
-            console.log(`playVideo - setting video playback rate to '${video.rate}'...`);
+            console.log(`Play - setting video playback rate to '${video.rate}'...`);
             this.player.setPlaybackRate(video.rate);
           }
         } else {
-          console.warn(`playVideo - player isn't ready yet. video will start when playing is loaded.`);
+          console.warn('Play - player isn\'t ready yet. video will start when playing is loaded.');
           this.videoToPlayWhenReady = video;
-          this.flags |= PlayerFlags.Waiting;
+          this.flags |= PlayerFlags.ForceUpdateStates;
         }
       },
 
@@ -129,114 +130,107 @@
             'rel': 0, // don't show any related videos
           },
           events: {
-            /**
-             * Player is ready
-             */
-            onReady: () => {
-              this.flags |= PlayerFlags.Ready;
-
-              // do we have a video waiting to play?
-              if (this.flags & PlayerFlags.Waiting) {
-                if (this.videoToPlayWhenReady) {
-                  this.play(this.videoToPlayWhenReady);
-                  this.videoToPlayWhenReady = null;
-                  this.resyncClock = true;
-                }
-
-                this.flags &= ~PlayerFlags.Waiting;
-              }
-            },
-
-            /**
-             * Player state changed
-             */
-            onStateChange: (event) => {
-              const state = event.data;
-
-              // ignore buffering states
-              if (state === YT.PlayerState.BUFFERING) {
-                return false;
-              }
-
-              console.log(`PlayerStateChange - New State: ${state}, Old State: ${this.currentVideo.state}`);
-
-              // once the video has started playing, force the state update if we requested it
-              if (state === YT.PlayerState.PLAYING && this.currentVideo.state !== state && this.ignorePlayerState) {
-                console.log(`PlayerStateChange - video is playing and ignorePlayerState flag is set. Switching to state ${this.currentVideo.state} now.`);
-                this.updateState(this.currentVideo);
-                return false;
-              }
-
-/*
-              // is the player state where it needs to be?
-              if (state === this.currentVideo.state) {
-                if (this.ignorePlayerState) {
-                  this.ignorePlayerState = false;
-                  console.log('PlayerStateChange - player is at the target state.', state);
-                }
-
-                // TODO: send time-only update?
-                // can't skip into the video when the player is paused
-
-                return false;
-              }
-            
-
-              // dont send the important stuff if we don't want to
-              if (this.ignorePlayerState) {
-                return false;
-              }
-*/
-
-              // update the currentVideo video state
-              this.currentVideo.state = state;
-
-              // playing - send update and remove the paused flag
-              if (state === YT.PlayerState.PLAYING) {
-                this.$root.$emit('send', {
-                  type: 'video--update',
-                  state: YT.PlayerState.PLAYING,
-                  time: this.getPlayerTime(),
-                });
-
-                this.flags &= ~PlayerFlags.Paused;
-              }
-              // paused - send update and set the paused flag
-              else if (state === YT.PlayerState.PAUSED) {
-                this.$root.$emit('send', {
-                  type: 'video--update',
-                  state: YT.PlayerState.PAUSED,
-                  time: this.getPlayerTime(),
-                });
-
-                this.flags |= PlayerFlags.Paused;
-              }
-              // ended - send update and set the paused flag
-              else if (state === YT.PlayerState.ENDED) {
-                this.$root.$emit('send', {
-                  type: 'video--update',
-                  state: YT.PlayerState.ENDED,
-                });
-
-                console.warn('video ended.');
-
-                this.flags |= PlayerFlags.Paused;
-                this.ignorePlayerState = true;
-              }
-
-              console.log('PlayerStateChange - sent updated state');
-            },
-
-            /**
-             * Player playback rate changed
-             */
-            onPlaybackRateChange: (event) => {
-              this.$root.$emit('send', {
-                type: 'video--playbackrate',
-                rate: event.data,
-              });
-            },
+            onReady: this.onPlayerReady,
+            onStateChange: this.onPlayerStateChange,
+            onPlaybackRateChange: this.onPlayerPlaybackRateChange,
           },
+        });
+      },
+
+      /**
+       * YouTube Player is ready
+       */
+      onPlayerReady() {
+        this.flags |= PlayerFlags.Ready;
+
+        // do we have a video waiting to play?
+        if (this.videoToPlayWhenReady) {
+          this.play(this.videoToPlayWhenReady);
+          this.videoToPlayWhenReady = null;
+        }
+      },
+
+      stateToString(state = this.currentState) {
+        switch (state) {
+          case -1: return 'UNSTARTED';
+          case 0: return 'ENDED';
+          case 1: return 'PLAYING';
+          case 2: return 'PAUSED';
+          case 3: return 'BUFFERING';
+          case 5: return 'VIDEO CUED';
+          default: return 'UNKNOWN';
+        }
+      },
+
+      /**
+       * YouTube Player state changed
+       */
+      onPlayerStateChange(event) {
+        const state = event.data;
+        let sendStateData = true;
+
+        // ignore unstarted and buffering states
+        if (state === -1) return;
+        else if (state === YT.PlayerState.BUFFERING) return;
+
+        console.log(`PlayerStateChange - PlayerState: ${this.stateToString(state)}, CurrentState: ${this.stateToString()}`);
+
+        // video started playing and current state was unstarted (-1)
+        if (state === YT.PlayerState.PLAYING && this.currentState === -1) {
+          console.warn('VIDEO STARTED PLAYING');
+
+          // update player states if needed
+          if (this.flags & PlayerFlags.ForceUpdateStates) {
+            this.updateState(this.currentVideo);
+            this.flags &= ~PlayerFlags.ForceUpdateStates;
+          }
+
+          // only send the state data if we are the room host
+          sendStateData = this.isHost;
+        }
+
+        // ignore the current state if we are trying to reach the server state
+        // this is so we don't send state data when someone else plays/pauses the video
+        if (this.flags & PlayerFlags.WaitForTargetState) {
+          sendStateData = false;
+
+          if (state === this.currentVideo.state) {
+            console.warn('TARGET STATE REACHED.');
+            this.flags &= ~PlayerFlags.WaitForTargetState;
+          }
+        }
+
+        // dont send state data if the current player state is where we were expecting
+        if (state === this.currentState) {
+          sendStateData = false;
+        }
+
+        // update the current video state
+        this.currentState = state;
+
+        if (state === YT.PlayerState.PLAYING) {
+          this.flags &= ~PlayerFlags.Paused;
+        } else if (state === YT.PlayerState.PAUSED) {
+          this.flags |= PlayerFlags.Paused;
+        } else if (state === YT.PlayerState.ENDED) {
+          console.warn('CURRENT VIDEO ENDED');
+          this.flags |= PlayerFlags.Ended;
+        }
+
+        // send state info to the server
+        if (sendStateData) {
+          console.log('sending state data..');
+          this.sendVideoStateData(state);
+        }
+      },
+
+      /**
+       * YouTube Player playback rate changed
+       */
+      onPlayerPlaybackRateChange(event) {
+        this.$root.$emit('send', {
+          type: 'video--playbackrate',
+          rate: event.data,
         });
       },
 
@@ -245,14 +239,17 @@
        */
       updateState({ state, time = 0 }) {
         if (!(this.flags & PlayerFlags.Ready)) {
-          console.error('updateState - YouTube player isn\'t ready yet!');
+          console.error('UpdateState - player isn\'t ready yet!');
         }
 
         if (this.currentVideo) {
           this.currentVideo.state = state;
         }
 
-        console.log('updateState', state, time);
+        // set the set by server flag, so we ignore the state change events later
+        this.flags |= PlayerFlags.WaitForTargetState;
+
+        console.log(`UpdateState - TargetState: ${this.stateToString(state)}, Time: ${time}`);
 
         if (state === YT.PlayerState.PLAYING) {
           this.player.playVideo();
@@ -293,12 +290,10 @@
        * Calculate the real player time with ping corrections
        */
       calcNetworkPlayerTime(time, ignore_delta = false) {
-        console.log(`calcNetworkPlayerTime(${time})`);
-
         time = (time + (this.ping / 1000));
         const delta = Math.abs(time - this.player.getCurrentTime());
-        console.log(` delta: ${delta}`);
 
+        // @Debugging
         this.$root.$emit('debugPlayerDelta', delta);
 
         if (!ignore_delta && delta < 0.6) {
@@ -318,6 +313,17 @@
           time: this.getPlayerTime(),
         });
       },
+
+      /**
+       * Send video state data to the server
+       */
+      sendVideoStateData(state) {
+        this.$root.$emit('send', {
+          type: 'video--update',
+          time: this.getPlayerTime(),
+          state,
+        });
+      },
     },
     computed: {
       isOnline: () => store.state.online,
@@ -333,9 +339,8 @@
           this.videoToQueue = '';
           this.flags = 0;
           this.currentVideo = null;
+          this.currentState = -1;
           this.videoToPlayWhenReady = null;
-          this.resyncClock = false;
-          this.ignorePlayerState = true;
 
           // destroy the player
           if (prevflags & PlayerFlags.Ready) {
