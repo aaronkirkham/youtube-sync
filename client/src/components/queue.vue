@@ -8,7 +8,7 @@
               <img v-bind:src="video.thumbnail" class="queue-item__thumbnail" />
             </div>
             <p class="queue-item__title">{{ video.title }}</p>
-            <button class="button--no-native queue-item__remove" title="Remove video from queue" @click="remove(video)">
+            <button class="button--no-native queue-item__remove" title="Remove video from queue" @click="requestRemove(video)">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="feather feather-x">
                 <path d="M18 6L6 18M6 6l12 12" />
               </svg>
@@ -23,57 +23,121 @@
       </svg>
       <p>Nothing in the queue</p>
     </div>
+
+    <button @click="debugQueue()" style="position:absolute;bottom:50px;">Queue Debug Videos</button>
   </aside>
 </template>
 
 <script>
   import Vue from 'vue';
   import store from '../store';
-  import draggable from 'vuedraggable';
+  import Draggable from 'vuedraggable';
 
   export default Vue.component('player-queue', {
-    components: { draggable },
-    data: () => ({
-      items: [],
-      draggable_options: {
-        animation: 100,
-      },
-    }),
+    components: {
+      Draggable
+    },
+    data() {
+      return {
+        items: [],
+        draggable_options: {
+          animation: 100,
+        },
+      };
+    },
     created() {
-      // this.items.push({ id: '1', title: 'This is a video title' });
-      // this.items.push({ id: '2', title: 'This is a video title' });
-      // this.items.push({ id: '3', title: 'This is a video title' });
+      // TEMP DEBUG
+      const video = {
+        id: 'oySqE3z99AE',
+        title: 'Hybrid Minds - Inside (ft. Emily Jones)',
+        url: 'https://www.youtube.com/watch?v=oySqE3z99AE',
+        thumbnail: 'https://i.ytimg.com/vi/oySqE3z99AE/hqdefault.jpg',
+      };
+
+      // this.requestAdd('https://www.youtube.com/watch?v=oySqE3z99AE');
+
+      // this.add(video);
+      // this.add(video);
+      // this.add(video);
+      // this.add(video);
+      // this.add(video);
+      // this.add(video);
+      // this.add(video);
+
+      /*
+      client_debugQueue() {
+        this.$root.$emit('send', {
+          type: 'queue--add',
+          id: 'oySqE3z99AE',
+          title: 'Hybrid Minds - Inside (ft. Emily Jones)',
+          url: 'https://www.youtube.com/watch?v=oySqE3z99AE',
+          thumbnail: 'https://i.ytimg.com/vi/oySqE3z99AE/hqdefault.jpg',
+        });
+
+        this.$root.$emit('send', {
+          type: 'queue--add',
+          id: 'JSxCc2e3BEE',
+          title: 'Hybrid Minds - Liquicity Winterfestival 2017',
+          url: 'https://www.youtube.com/watch?v=JSxCc2e3BEE',
+          thumbnail: 'https://i.ytimg.com/vi/JSxCc2e3BEE/hqdefault.jpg',
+        });
+
+        this.$root.$emit('send', {
+          type: 'queue--add',
+          id: '-fCtvurGDD8',
+          title: 'Birdy - Wings (Nu:Logic Remix)',
+          url: 'https://www.youtube.com/watch?v=-fCtvurGDD8',
+          thumbnail: 'https://i.ytimg.com/vi/-fCtvurGDD8/hqdefault.jpg',
+        });
+      },
+      */
     },
     mounted() {
-      this.$root.$on('server__queue--add', data => this.items.push(data));
-      this.$root.$on('server__queue--remove', data => this.items = this.items.filter(v => v.id !== data.id));
-      this.$root.$on('server__queue--order', data => {
+      this.$root.$on('server__queue--add', this.add);
+      this.$root.$on('server__queue--remove', this.remove);
+      this.$root.$on('server__queue--order', this.order);
+      this.$root.$on('server__room--update', ({ queue }) => this.items = queue);
+
+      this.$root.$on('queue-video', this.requestAdd);
+    },
+    methods: {
+      /**
+       * Add a video to the local queue
+       * NOTE: This does not tell the server
+       */
+      add(video) {
+        this.items.push(video);
+      },
+
+      /**
+       * Remove a video from the local queue
+       * NOTE: This does not tell the server
+       */
+      remove(video) {
+        this.items = this.items.filter(v => v.id !== video.id);
+      },
+
+      /**
+       * Update local queue order from server
+       * NOTE: This does not tell the server
+       */
+      order(data) {
         this.items.sort((a, b) => {
           return data.order.indexOf(a.id) > data.order.indexOf(b.id) ? 1 : -1;
         });
-      });
-      this.$root.$on('server__room--update', data => this.items = data.queue);
-    },
-    methods: {
-      remove(video) {
-        this.$root.$emit('send', { type: 'queue--remove', id: video.id });
       },
-      // queueSort(end) {
-      //   const draggable_container = document.getElementById('player-queue-draggable');
-      //   draggable_container.classList.toggle('dragging', !end);
 
-      //   if (end) {
-      //     const order = this.items.map(item => item.id);
-      //     this.$root.$emit('send', { type: 'queue--order', order });
-      //     setTimeout(() => draggable_container.classList.remove('no-sort-animation'), 150);
-      //   } else {
-      //     draggable_container.classList.add('no-sort-animation');
-      //   }
-      // },
+      /**
+       * User started dragging an item in the queue
+       */
       startDrag() {
         const classes = this.$refs.draggable.$el.classList;
         classes.add('dragging', 'no-sort-animation');
       },
+
+      /**
+       * User stopped dragging an item in the queue
+       */
       stopDrag() {
         const classes = this.$refs.draggable.$el.classList;
         classes.remove('dragging');
@@ -82,6 +146,42 @@
         this.$root.$emit('send', { type: 'queue--order', order });
 
         setTimeout(() => classes.remove('no-sort-animation'), 150);
+      },
+
+      /**
+       * Tell the server we want to queue a video
+       * NOTE: We expect the server to send us 'server__queue--add'
+       */
+      requestAdd(url) {
+        // ensure the url is valid
+        const segments = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/);
+        if (segments === null || typeof segments[2] === 'undefined' || segments[2].length === 0) {
+          console.error('invalid youtube url!');
+          // TODO: client errors
+          return;
+        }
+
+        fetch(`https://noembed.com/embed?url=${url}`, { method: 'get' })
+          .then(res => res.json())
+          .then((data) => {
+            const { title, url, thumbnail_url } = data;
+            this.$root.$emit('send', {
+              type: 'queue--add',
+              id: segments[2],
+              thumbnail: thumbnail_url,
+              title,
+              url,
+            });
+          })
+          .catch(err => console.error(err));
+      },
+
+      /**
+       * Tell the server we want to remove a video from the queue
+       * NOTE: We expect the server to send us 'server__queue--remove'
+       */
+      requestRemove(video) {
+        this.$root.$emit('send', { type: 'queue--remove', id: video.id });
       },
     },
     computed: {

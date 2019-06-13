@@ -50,7 +50,7 @@
       // broadcast the pong event
       this.socket.on('pong', ms => {
         this.$store.commit('setPing', ms);
-        this.$emit(`server__pong`, ms);
+        this.$emit('server__pong', ms);
       });
     },
     computed: {
