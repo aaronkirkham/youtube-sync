@@ -32,7 +32,7 @@ export class Room {
     client.on('queue--remove', data => this.queueRemove(client, data));
     client.on('queue--order', data => this.queueOrder(client, data));
     client.on('video--update', data => this.updateVideo(client, data));
-    client.on('video--playback-rate', data => this.updateVideoPlaybackRate(client, data));
+    client.on('video--playbackrate', data => this.updateVideoPlaybackRate(client, data));
     client.on('video--clock', data => this.syncClock(client, data));
 
     // send the current room state to the client
@@ -41,6 +41,9 @@ export class Room {
         current: this.current ? this.current.fullData() : null,
         queue: this.queue.map(video => video.data()),
       });
+
+      console.log('sending current video state to client');
+      console.log(this.current.stateData());
 
       // TODO: need to keep track of how long ago the last player time was synced
       // so if a user joins right after the last sync, they won't be 2500ms behind
@@ -135,13 +138,13 @@ export class Room {
 
         // YT.PlayerState.PLAYING
         case 1: {
-          this.current.setTime(data.time);
+          this.setTimeAndSyncClock(client, data.time);
           break;
         }
 
         // YT.PlayerState.PAUSED
         case 2: {
-          this.current.setTime(data.time);
+          this.setTimeAndSyncClock(client, data.time);
           break;
         }
 
@@ -165,7 +168,7 @@ export class Room {
   updateVideoPlaybackRate(client: Client, data: any): void {
     if (this.current) {
       this.current.setPlaybackRate(data.rate);
-      this.emit('video--playback-rate', this.current.rateData(), client);
+      this.emit('video--playbackrate', this.current.rateData(), client);
     }
   }
 
@@ -206,7 +209,20 @@ export class Room {
       return;
     }
 
-    this.current.setTime(data.time);
+    this.setTimeAndSyncClock(client, data.time);
+  }
+
+  /**
+   * Set the current video time, and force a clock sync to all clients
+   * @param client Client who sent the request
+   * @param time Time of the current video to sync
+   */
+  setTimeAndSyncClock(client: Client, time: number) {
+    if (!this.host.is(client)) {
+      console.log('setTimeAndSyncClock from none-host client');
+    }
+
+    this.current.setTime(time);
     this.emit('video--clock', this.current.clockData(), client);
   }
 
