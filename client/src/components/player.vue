@@ -2,6 +2,30 @@
   <main class="player" id="player">
     <div class="player__iframe-container">
       <div id="player__iframe"></div>
+      <div id="player__debug" v-if="showDebugView">
+        <table class="debug-info">
+          <tr>
+            <td>State:</td>
+            <td :style="{ color: isOnline ? 'inherit' : 'red'}">{{ isOnline ? 'Online' : 'Offline' }}</td>
+          </tr>
+          <tr>
+            <td>Ping:</td>
+            <td>{{ ping }}</td>
+          </tr>
+          <tr>
+            <td>Is Host:</td>
+            <td>{{ isHost ? 'Yes' : 'No' }}</td>
+          </tr>
+          <tr>
+            <td>Delta:</td>
+            <td :style="{ color: debugDeltaColour() }">{{ delta.toFixed(4) }}</td>
+          </tr>
+          <tr>
+            <td>Flags:</td>
+            <td>{{ flags.toString(2).padStart(8, '0') }}</td>
+          </tr>
+        </table>
+      </div>
     </div>
     <div class="style-input">
       <input type="text" class="input" placeholder="Paste a YouTube URL..." v-model="videoToQueue" @keyup.enter="requestVideo()" />
@@ -15,12 +39,10 @@
   import store from '../store';
 
   const PlayerFlags = {
-    Ready: 1,                 // player is ready to rock
-    Paused: 2,                // current video is paused
-    Ended: 4,                 // current video has ended
-    Seeking: 8,               // UNUSED AT THE MINUTE
-    WaitForTargetState: 16,   // waiting for player to reach the target state
-    ForceUpdateStates: 32,    // states should be updated instantly
+    Ready:                (1 << 0), // player is ready to rock
+    Paused:               (1 << 1), // current video is paused
+    WaitForTargetState:   (1 << 2), // waiting for player to reach the target state
+    ForceUpdateStates:    (1 << 3), // states should be updated instantly
   };
 
   export default Vue.component('youtube-player', {
@@ -30,8 +52,9 @@
         flags: 0,
         videoToQueue: 'https://www.youtube.com/watch?v=hAxSVf7zoD8',
         currentVideo: null,
-        currentState: -1, // unstarted
+        currentState: -1, // YT.PlayerState.UNSTARTED
         videoToPlayWhenReady: null,
+        delta: 0,
       };
     },
     created() {
@@ -47,23 +70,24 @@
       this.$root.$on('server__room--update', ({ current }) => this.play(current));
 
       this.$root.$on('server__video--clock', (data) => {
-        if (this.currentState === -1) return;
+        if (this.currentState === YT.PlayerState.UNSTARTED) return;
         else if (this.flags & PlayerFlags.WaitForTargetState) return;
+        else if (this.currentVideo.id !== data.id) return;
 
-        if (this.currentVideo.id === data.id) {
-          const time = this.calcNetworkPlayerTime(data.time);
-          if (time !== false) {
-            this.player.seekTo(time, true);
-            console.log('FORCED RESYNC', time);
-          }
-        }
+        const time = this.calcNetworkPlayerTime(data.time);
+        if (time === false) return;
+
+        this.player.seekTo(time, true);
       });
 
       this.$root.$on('server__pong', (data) => {
-        // send the clock update
-        if (this.isHost && this.currentVideo && ((this.flags & PlayerFlags.Ready) && !(this.flags & PlayerFlags.Paused))) {
-          this.sendVideoClockData();
-        }
+        if (!this.isHost) return;
+        else if (!this.currentVideo) return;
+        else if (!(this.flags & PlayerFlags.Ready)) return;
+        else if (this.flags & PlayerFlags.Paused) return;
+
+        this.sendVideoClockData();
+        this.delta = 0;
       });
 
       // youtube iframe ready
@@ -81,38 +105,36 @@
       play(video) {
         if (!video) return;
 
-        // if (this.flags & PlayerFlags.Ended) {
-        //   console.warn('Play - Ended flag is set. Probably switching to the next video in the queue!');
-        // }
-
-        if (this.flags & PlayerFlags.Ready) {
-          let time = video.time ? video.time : 0;
-
-          // if the video is playing, calculate the network player time
-          if (video.state === 1) {
-            time = this.calcNetworkPlayerTime(video.time, true);
-          }
-
-          if (typeof video.state === 'undefined') {
-            video.state = -1; // unstarted
-          }
-
-          console.log(`Play - Loading video... Time: ${time}, TargetState: ${video.state}`);
-
-          this.currentVideo = video;
-          this.currentState = -1;
-          this.player.loadVideoById(video.videoId, time, 'default');
-          document.title = `${video.title} - YouTube Sync`;
-
-          // set the playback rate if we need to
-          if (typeof video.rate !== 'undefined') {
-            console.log(`Play - setting video playback rate to '${video.rate}'...`);
-            this.player.setPlaybackRate(video.rate);
-          }
-        } else {
+        // player isn't ready yet
+        if (!(this.flags & PlayerFlags.Ready)) {
           console.warn('Play - player isn\'t ready yet. video will start when playing is loaded.');
           this.videoToPlayWhenReady = video;
           this.flags |= PlayerFlags.ForceUpdateStates;
+          return;
+        }
+
+        let time = video.time ? video.time : 0;
+
+        // if the video is playing, calculate the network player time
+        if (video.state === 1) {
+          time = this.calcNetworkPlayerTime(video.time, true);
+        }
+
+        if (typeof video.state === 'undefined') {
+          video.state = YT.PlayerState.UNSTARTED;
+        }
+
+        console.log(`Play - Loading video... Time: ${time}, TargetState: ${this.stateToString(video.state)}`);
+
+        this.currentVideo = video;
+        this.currentState = YT.PlayerState.UNSTARTED;
+        this.player.loadVideoById(video.videoId, time, 'default');
+        document.title = `${video.title} - YouTube Sync`;
+
+        // set the playback rate if we need to
+        if (typeof video.rate !== 'undefined') {
+          console.log(`Play - setting video playback rate to '${video.rate}'...`);
+          this.player.setPlaybackRate(video.rate);
         }
       },
 
@@ -121,13 +143,10 @@
        */
       createPlayer() {
         this.player = new YT.Player('player__iframe', {
-          width: 560,
-          height: 315,
+          width: 1280,
+          height: 720,
           playerVars: {
-            'autoplay': 0, // don't start playing the media automatically
-            'controls': 1, // show the player default controls
-            'iv_load_policy': 3, // don't show any video annotations
-            'rel': 0, // don't show any related videos
+            modestbranding: 1,  // hide youtube logo in the control bar
           },
           events: {
             onReady: this.onPlayerReady,
@@ -152,13 +171,13 @@
 
       stateToString(state = this.currentState) {
         switch (state) {
-          case -1: return 'UNSTARTED';
-          case 0: return 'ENDED';
-          case 1: return 'PLAYING';
-          case 2: return 'PAUSED';
-          case 3: return 'BUFFERING';
-          case 5: return 'VIDEO CUED';
-          default: return 'UNKNOWN';
+          case YT.PlayerState.UNSTARTED:  return 'UNSTARTED';
+          case YT.PlayerState.ENDED:      return 'ENDED';
+          case YT.PlayerState.PLAYING:    return 'PLAYING';
+          case YT.PlayerState.PAUSED:     return 'PAUSED';
+          case YT.PlayerState.BUFFERING:  return 'BUFFERING';
+          case YT.PlayerState.CUED:       return 'VIDEO CUED';
+          default:                        return 'UNKNOWN';
         }
       },
 
@@ -170,13 +189,14 @@
         let sendStateData = true;
 
         // ignore unstarted and buffering states
-        if (state === -1) return;
+        if (state === YT.PlayerState.UNSTARTED) return;
         else if (state === YT.PlayerState.BUFFERING) return;
+        else if (state === YT.PlayerState.ENDED && !this.isHost) return;
 
         console.log(`PlayerStateChange - PlayerState: ${this.stateToString(state)}, CurrentState: ${this.stateToString()}`);
 
-        // video started playing and current state was unstarted (-1)
-        if (state === YT.PlayerState.PLAYING && this.currentState === -1) {
+        // video started playing and current state was unstarted
+        if (state === YT.PlayerState.PLAYING && this.currentState === YT.PlayerState.UNSTARTED) {
           console.warn('VIDEO STARTED PLAYING');
 
           // update player states if needed
@@ -195,7 +215,6 @@
           sendStateData = false;
 
           if (state === this.currentVideo.state) {
-            console.warn('TARGET STATE REACHED.');
             this.flags &= ~PlayerFlags.WaitForTargetState;
           }
         }
@@ -212,9 +231,6 @@
           this.flags &= ~PlayerFlags.Paused;
         } else if (state === YT.PlayerState.PAUSED) {
           this.flags |= PlayerFlags.Paused;
-        } else if (state === YT.PlayerState.ENDED) {
-          console.warn('CURRENT VIDEO ENDED');
-          this.flags |= PlayerFlags.Ended;
         }
 
         // send state info to the server
@@ -260,7 +276,6 @@
           this.flags |= PlayerFlags.Paused;
         } else if (state === YT.PlayerState.ENDED) {
           this.player.stopVideo();
-          this.flags |= PlayerFlags.Paused;
         }
       },
 
@@ -269,7 +284,7 @@
        */
       setPlaybackRate(rate) {
         if (!(this.flags & PlayerFlags.Ready)) {
-          // TODO: we should store the playback rate, then set it once the player is ready!
+          return;
         }
 
         this.player.setPlaybackRate(rate);
@@ -294,7 +309,7 @@
         const delta = Math.abs(time - this.player.getCurrentTime());
 
         // @Debugging
-        this.$root.$emit('debugPlayerDelta', delta);
+        this.delta = delta;
 
         if (!ignore_delta && delta < 0.6) {
           return false;
@@ -324,11 +339,19 @@
           state,
         });
       },
+
+
+      debugDeltaColour() {
+        if (this.delta > 0.4) return 'red'
+        else if (this.delta > 0.25) return 'orange';
+        return 'inherit';
+      },
     },
     computed: {
       isOnline: () => store.state.online,
       isHost: () => store.state.host,
       ping: () => store.state.ping,
+      showDebugView: () => process.env.mode === 'development',
     },
     watch: {
       isOnline(state) {
@@ -339,7 +362,7 @@
           this.videoToQueue = '';
           this.flags = 0;
           this.currentVideo = null;
-          this.currentState = -1;
+          this.currentState = YT.PlayerState.UNSTARTED;
           this.videoToPlayWhenReady = null;
 
           // destroy the player
@@ -374,6 +397,32 @@
         left: 0;
         width: 100%;
         height: 100%;
+      }
+    }
+  }
+
+  #player__debug {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 9999;
+    user-select: none;
+    pointer-events: none;
+    background-color: #000000;
+    padding: 5px;
+    opacity: 0.75;
+
+    .debug-info {
+      width: 100%;
+
+      tr {
+        td:first-child {
+          padding-right: 25px;
+        }
+
+        td:last-child {
+          text-align: right;
+        }
       }
     }
   }

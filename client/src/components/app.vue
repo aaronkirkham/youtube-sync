@@ -6,7 +6,6 @@
       </div>
     </header> -->
     <router-view></router-view>
-    <debug-view v-if="showDebugView"></debug-view>
   </div>
 </template>
 
@@ -15,15 +14,10 @@
   import router from '../router';
   import io from 'socket.io-client';
 
-  import DebugView from './debug';
-
   export default {
     el: 'app',
     store,
     router,
-    components: {
-      DebugView
-    },
     data() {
       return {
         socket: null,
@@ -52,9 +46,6 @@
         this.$store.commit('setPing', ms);
         this.$emit('server__pong', ms);
       });
-    },
-    computed: {
-      showDebugView: () => process.env.mode === 'development',
     },
   };
 </script>
