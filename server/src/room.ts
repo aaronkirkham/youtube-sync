@@ -187,6 +187,8 @@ export class Room {
 
       // remove the video we queued from the queue list
       this.queueRemove(client, { id: next.id });
+    } else {
+      this.emit('video--ended');
     }
   }
 
@@ -215,10 +217,6 @@ export class Room {
    * @param time Time of the current video to sync
    */
   setTimeAndSyncClock(client: Client, time: number) {
-    if (!this.host.is(client)) {
-      console.log('setTimeAndSyncClock from none-host client');
-    }
-
     this.current.setTime(time);
     this.emit('video--clock', this.current.clockData(), client);
   }
