@@ -9,6 +9,10 @@
             <td :style="{ color: isOnline ? 'inherit' : 'red'}">{{ isOnline ? 'Online' : 'Offline' }}</td>
           </tr>
           <tr>
+            <td>Flags:</td>
+            <td>{{ flags.toString(2).padStart(8, '0') }}</td>
+          </tr>
+          <tr>
             <td>Ping:</td>
             <td>{{ ping }}</td>
           </tr>
@@ -19,10 +23,6 @@
           <tr>
             <td>Delta:</td>
             <td :style="{ color: debugDeltaColour() }">{{ delta.toFixed(4) }}</td>
-          </tr>
-          <tr>
-            <td>Flags:</td>
-            <td>{{ flags.toString(2).padStart(8, '0') }}</td>
           </tr>
         </table>
       </div>
@@ -57,6 +57,12 @@
         delta: 0,
       };
     },
+    metaInfo() {
+      return {
+        title: this.currentVideo ? this.currentVideo.title : undefined,
+        titleTemplate: this.currentVideo ? '%s - YouTube Sync' : 'YouTube Sync',
+      };
+    },
     created() {
       const script = document.createElement('script');
       script.setAttribute('async', true);
@@ -67,6 +73,7 @@
       this.$root.$on('server__video--play', this.play);
       this.$root.$on('server__video--state', this.updateState);
       this.$root.$on('server__video--playbackrate', ({ rate }) => this.setPlaybackRate(rate));
+      this.$root.$on('server__video--ended', this.reset);
       this.$root.$on('server__room--update', ({ current }) => this.play(current));
 
       this.$root.$on('server__video--clock', (data) => {
@@ -129,12 +136,32 @@
         this.currentVideo = video;
         this.currentState = YT.PlayerState.UNSTARTED;
         this.player.loadVideoById(video.videoId, time, 'default');
-        document.title = `${video.title} - YouTube Sync`;
 
         // set the playback rate if we need to
         if (typeof video.rate !== 'undefined') {
           console.log(`Play - setting video playback rate to '${video.rate}'...`);
           this.player.setPlaybackRate(video.rate);
+        }
+      },
+
+      /**
+       * Reset all data and recreate the player
+       */
+      reset() {
+        const recreatePlayer = (this.flags & PlayerFlags.Ready);
+
+        // reset
+        this.videoToQueue = '';
+        this.flags = 0;
+        this.currentVideo = null;
+        this.currentState = YT.PlayerState.UNSTARTED;
+        this.videoToPlayWhenReady = null;
+        this.delta = 0;
+
+        // destroy the player
+        if (recreatePlayer) {
+          this.player.destroy();
+          this.createPlayer();
         }
       },
 
@@ -355,21 +382,9 @@
     },
     watch: {
       isOnline(state) {
+        // reset everything if we go offline
         if (state === false) {
-          const prevflags = this.flags;
-
-          // reset
-          this.videoToQueue = '';
-          this.flags = 0;
-          this.currentVideo = null;
-          this.currentState = YT.PlayerState.UNSTARTED;
-          this.videoToPlayWhenReady = null;
-
-          // destroy the player
-          if (prevflags & PlayerFlags.Ready) {
-            this.player.destroy();
-            this.createPlayer();
-          }
+          this.reset();
         }
       },
     },
