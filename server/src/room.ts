@@ -98,8 +98,6 @@ export class Room {
       if (removed.length !== 0) {
         const { id } = removed[0];
         this.emit('queue--remove', { id });
-      } else {
-        console.log(clc.red(`Tried to dequeue a video which doesn't exist. ${data.id}`));
       }
     }
   }
@@ -204,7 +202,6 @@ export class Room {
     }
 
     if (this.current.id !== data.id) {
-      console.log(clc.red(`Got sync for a different video. (${data.id}, ${this.current.id})`));
       return;
     }
 

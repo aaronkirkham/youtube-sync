@@ -1,10 +1,9 @@
 <template>
   <div id="app">
-    <!-- <header class="primary-header" role="banner">
-      <div class="container">
-        <h1 class="logo">YouTube Sync<span v-if="!isOnline"> (OFFLINE)</span></h1>
-      </div>
-    </header> -->
+    <header class="primary-header" role="banner">
+      <h1 class="logo">YouTube Sync</h1>
+      <search></search>
+    </header>
     <router-view></router-view>
   </div>
 </template>
@@ -14,17 +13,23 @@
   import router from '../router';
   import io from 'socket.io-client';
 
+  import Search from './search';
+
   export default {
     el: 'app',
     store,
     router,
+    components: {
+      Search,
+    },
     data() {
       return {
         socket: null,
       };
     },
     mounted() {
-      this.socket = io('http://localhost:8888');//, { reconnection: false, query: `timestamp=${Date.now()}` });
+      // this.socket = io('http://localhost:8888');//, { reconnection: false, query: `timestamp=${Date.now()}` });
+      this.socket = io('http://51.9.50.6:8888');//, { reconnection: false, query: `timestamp=${Date.now()}` });
       this.socket.on('connect', () => this.$store.commit('setOnline', true));
       this.socket.on('disconnect', () => {
         this.$store.commit('setOnline', false);
@@ -33,10 +38,15 @@
         router.push('/');
       });
 
+      this.socket.on('connect_error', err => console.error(err));
+
       // register send events
       this.$on('send', data => this.socket.emit(`client__${data.type}`, data));
       this.$on('server__im_the_host', () => this.$store.commit('setHost', true));
-      this.$on('server__update_url', data => router.push(data.id));
+      this.$on('server__update_url', data => {
+        router.push(data.id);
+        console.log(data);
+      });
 
       // register receive events
       this.socket.on('recv', data => this.$emit(`server__${data.type}`, data));
@@ -69,12 +79,25 @@
     padding: 25px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    overscroll-behavior-y: none;
+    overscroll-behavior: none none;
+  }
+
+  input,
+  button {
+    font-family: 'PT Sans', sans-serif;
+    font-weight: 400;
   }
 
   #app {
     display: grid;
     grid-gap: 50px;
     grid-template-columns: auto auto 30%;
+  }
+
+  .primary-header {
+    position: relative;
+    grid-column: 1 / 4;
+    display: flex;
+    align-items: center;
   }
 </style>

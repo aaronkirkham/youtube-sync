@@ -7,6 +7,7 @@ import Room from './components/routes/room.vue';
 Vue.use(VueRouter);
 
 const router = new VueRouter({
+  base: '/youtube/',
   mode: 'history',
   routes: [
     { path: '/', name: 'index', component: Room },

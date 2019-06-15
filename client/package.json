@@ -5,6 +5,7 @@
   "main": "./src/main.js",
   "scripts": {
     "start": "webpack-dev-server --config webpack.js --host 0.0.0.0 --mode development",
+    "build:dev": "webpack --config webpack.js --progress --hide-modules --mode development",
     "build": "webpack --config webpack.js --progress --hide-modules --mode production",
     "watch": "webpack --config webpack.js --progress --watch --mode development"
   },

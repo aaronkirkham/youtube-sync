@@ -27,10 +27,6 @@
         </table>
       </div>
     </div>
-    <div class="style-input">
-      <input type="text" class="input" placeholder="Paste a YouTube URL..." v-model="videoToQueue" @keyup.enter="requestVideo()" />
-      <button type="submit" class="button" @click="requestVideo()">Queue</button>
-    </div>
   </main>
 </template>
 
@@ -50,7 +46,6 @@
       return {
         player: null,
         flags: 0,
-        videoToQueue: 'https://www.youtube.com/watch?v=hAxSVf7zoD8',
         currentVideo: null,
         currentState: -1, // YT.PlayerState.UNSTARTED
         videoToPlayWhenReady: null,
@@ -101,11 +96,6 @@
       window.onYouTubeIframeAPIReady = this.createPlayer;
     },
     methods: {
-      requestVideo() {
-        this.$root.$emit('queue-video', this.videoToQueue);
-        this.videoToQueue = '';
-      },
-
       /**
        * Start playing a video
        */
@@ -151,7 +141,6 @@
         const recreatePlayer = (this.flags & PlayerFlags.Ready);
 
         // reset
-        this.videoToQueue = '';
         this.flags = 0;
         this.currentVideo = null;
         this.currentState = YT.PlayerState.UNSTARTED;
@@ -420,7 +409,7 @@
     position: absolute;
     top: 0;
     left: 0;
-    z-index: 9999;
+    z-index: 99;
     user-select: none;
     pointer-events: none;
     background-color: #000000;

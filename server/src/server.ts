@@ -21,9 +21,10 @@ export class Server {
       // do we have a room to connect to?
       let referer = socket.handshake.headers.referer;
       referer = referer ? referer.replace(socket.handshake.headers.origin, '') : referer;
-      if (referer && referer !== '/') {
+      if (referer && referer !== '/' && referer !== '/youtube/') {
         // remove the leading slash
-        id = referer.startsWith('/') ? referer.substr(1, referer.length) : referer;
+        // id = referer.startsWith('/') ? referer.substr(1, referer.length) : referer;
+        id = referer.startsWith('/') ? referer.substr(9, referer.length) : referer;
       } else {
         id = this.findRoom();
         updateUrl = true;

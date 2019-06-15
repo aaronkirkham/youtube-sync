@@ -1,11 +1,11 @@
 <template>
   <aside class="queue">
-    <draggable v-model="items" v-bind:options="draggable_options" ref="draggable" class="queue__container" @start="startDrag()" @end="stopDrag()">
+    <draggable v-model="items" animation="100" ref="draggable" class="queue__container" @start="startDrag()" @end="stopDrag()">
       <transition-group name="draggable-list" tag="div">
-        <div v-for="video in items" v-bind:key="video.id" class="queue-item-container">
+        <div v-for="video in items" :key="video.id" class="queue-item-container">
           <div class="queue-item">
             <div class="queue-item__thumbnail-container">
-              <img v-bind:src="video.thumbnail" class="queue-item__thumbnail" />
+              <img :src="video.thumbnail" class="queue-item__thumbnail" />
             </div>
             <p class="queue-item__title">{{ video.title }}</p>
             <button class="button--no-native queue-item__remove" title="Remove video from queue" @click="requestRemove(video)">
@@ -23,8 +23,6 @@
       </svg>
       <p>Nothing in the queue</p>
     </div>
-
-    <button @click="debugQueue()" style="position:absolute;bottom:50px;">Queue Debug Videos</button>
   </aside>
 </template>
 
@@ -40,65 +38,17 @@
     data() {
       return {
         items: [],
-        draggable_options: {
-          animation: 100,
-        },
       };
-    },
-    created() {
-      // TEMP DEBUG
-      const video = {
-        id: 'oySqE3z99AE',
-        title: 'Hybrid Minds - Inside (ft. Emily Jones)',
-        url: 'https://www.youtube.com/watch?v=oySqE3z99AE',
-        thumbnail: 'https://i.ytimg.com/vi/oySqE3z99AE/hqdefault.jpg',
-      };
-
-      // this.requestAdd('https://www.youtube.com/watch?v=oySqE3z99AE');
-
-      // this.add(video);
-      // this.add(video);
-      // this.add(video);
-      // this.add(video);
-      // this.add(video);
-      // this.add(video);
-      // this.add(video);
-
-      /*
-      client_debugQueue() {
-        this.$root.$emit('send', {
-          type: 'queue--add',
-          id: 'oySqE3z99AE',
-          title: 'Hybrid Minds - Inside (ft. Emily Jones)',
-          url: 'https://www.youtube.com/watch?v=oySqE3z99AE',
-          thumbnail: 'https://i.ytimg.com/vi/oySqE3z99AE/hqdefault.jpg',
-        });
-
-        this.$root.$emit('send', {
-          type: 'queue--add',
-          id: 'JSxCc2e3BEE',
-          title: 'Hybrid Minds - Liquicity Winterfestival 2017',
-          url: 'https://www.youtube.com/watch?v=JSxCc2e3BEE',
-          thumbnail: 'https://i.ytimg.com/vi/JSxCc2e3BEE/hqdefault.jpg',
-        });
-
-        this.$root.$emit('send', {
-          type: 'queue--add',
-          id: '-fCtvurGDD8',
-          title: 'Birdy - Wings (Nu:Logic Remix)',
-          url: 'https://www.youtube.com/watch?v=-fCtvurGDD8',
-          thumbnail: 'https://i.ytimg.com/vi/-fCtvurGDD8/hqdefault.jpg',
-        });
-      },
-      */
     },
     mounted() {
       this.$root.$on('server__queue--add', this.add);
       this.$root.$on('server__queue--remove', this.remove);
       this.$root.$on('server__queue--order', this.order);
       this.$root.$on('server__room--update', ({ queue }) => this.items = queue);
-
       this.$root.$on('queue-video', this.requestAdd);
+
+      // @Debugging
+      this.$root.$on('debugQueueVideos', this.debugQueueVideos);
     },
     methods: {
       /**
@@ -182,6 +132,33 @@
        */
       requestRemove(video) {
         this.$root.$emit('send', { type: 'queue--remove', id: video.id });
+      },
+
+      // @Debugging
+      debugQueueVideos() {
+        this.$root.$emit('send', {
+          type: 'queue--add',
+          id: 'oySqE3z99AE',
+          title: 'Hybrid Minds - Inside (ft. Emily Jones)',
+          url: 'https://www.youtube.com/watch?v=oySqE3z99AE',
+          thumbnail: 'https://i.ytimg.com/vi/oySqE3z99AE/hqdefault.jpg',
+        });
+
+        this.$root.$emit('send', {
+          type: 'queue--add',
+          id: 'JSxCc2e3BEE',
+          title: 'Hybrid Minds - Liquicity Winterfestival 2017',
+          url: 'https://www.youtube.com/watch?v=JSxCc2e3BEE',
+          thumbnail: 'https://i.ytimg.com/vi/JSxCc2e3BEE/hqdefault.jpg',
+        });
+
+        this.$root.$emit('send', {
+          type: 'queue--add',
+          id: '-fCtvurGDD8',
+          title: 'Birdy - Wings (Nu:Logic Remix)',
+          url: 'https://www.youtube.com/watch?v=-fCtvurGDD8',
+          thumbnail: 'https://i.ytimg.com/vi/-fCtvurGDD8/hqdefault.jpg',
+        });
       },
     },
     computed: {
