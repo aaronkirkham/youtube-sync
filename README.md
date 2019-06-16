@@ -8,7 +8,7 @@ Synchronized YouTube video playback between multiple clients. Create a room, inv
 - `npm install`
 - `npm run build`
 
-The client files will be output in the `dist` folder. If you're planning on running the client on a server in a subdirectory, remember to edit the **RewriteBase** value inside `.htaccess`.
+The client files will be output in the `public` folder. If you're planning on running the client on a server in a subdirectory, remember to edit the **RewriteBase** value inside `.htaccess`.
 
 Alternatively you can run inside webpack-dev-server by using `npm run start`. The hotreload server will be live at **localhost:8080**.
 

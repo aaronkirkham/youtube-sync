@@ -4,13 +4,12 @@ const webpack = require('webpack');
 const path = require('path');
 const VueLoaderPlugin = require('vue-loader/lib/plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 module.exports = (env, options) => {
   return {
     entry: ['./src/main.js'],
     output: {
-      path: path.resolve(__dirname, './dist'),
+      path: path.resolve(__dirname, './public'),
       filename: 'app.js',
     },
     devServer: {
@@ -73,9 +72,6 @@ module.exports = (env, options) => {
           useShortDoctype: true,
         },
       }),
-      new CopyWebpackPlugin([
-        { from: './src/.htaccess' },
-      ]),
     ],
     resolve: {
       extensions: ['.js', '.vue', '.json'],

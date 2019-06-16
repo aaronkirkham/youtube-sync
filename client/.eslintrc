@@ -1,5 +1,8 @@
 {
-  "extends": "airbnb-base",
+  "extends": [
+    "airbnb-base",
+    "plugin:vue/recommended"
+  ],
   "env": {
     "node": true,
     "es6": true,
@@ -8,6 +11,7 @@
   "rules": {
     "linebreak-style": 0,
     "no-console": 0,
+    "max-len": 0,
     "no-param-reassign": [
       "error",
       {
@@ -24,6 +28,18 @@
           "$scope"
         ]
       }
-    ]
-  }
+    ],
+    "vue/script-indent": ["error", 2, { "baseIndent": 1 }],
+    "vue/no-unused-components": 0,
+    "vue/max-attributes-per-line": 0,
+    "vue/singleline-html-element-content-newline": 0
+  },
+  "overrides": [
+    {
+      "files": ["*.vue"],
+      "rules": {
+        "indent": "off"
+      }
+    }
+  ]
 }

@@ -1,0 +1,9 @@
+{
+  "name": "youtube-sync",
+  "short_name": "youtube-sync",
+  "icons": [],
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#4DBA87"
+}

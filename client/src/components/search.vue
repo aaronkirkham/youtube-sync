@@ -1,12 +1,12 @@
 <template>
   <div class="search">
-    <input type="search" placeholder="Search YouTube or Paste URL" v-model="terms" @search="search" />
-    <p style="color:red;" v-if="error">{{ error }}</p>
+    <input v-model="terms" type="search" placeholder="Search YouTube or Paste URL" @keyup.enter="search">
+    <p v-if="error" style="color:red;">{{ error }}</p>
 
-    <div class="search__results" v-if="results.length !== 0">
+    <div v-if="results.length !== 0" class="search__results">
       <div class="search__results-scroll-container">
-        <a class="search-result" v-for="(result, idx) in results" :key="idx" :href="result.url" target="_blank" @click.prevent="queueResult(result)">
-          <img :src="result.thumbnail.url" :alt="result.title" :width="result.thumbnail.width" :height="result.thumbnail.height" class="search-result__thumbnail" />
+        <a v-for="(result, idx) in results" :key="idx" class="search-result" :href="result.url" target="_blank" @click.prevent="queueResult(result)">
+          <img :src="result.thumbnail.url" :alt="result.title" :width="result.thumbnail.width" :height="result.thumbnail.height" class="search-result__thumbnail">
           <h4 class="search-result__title">{{ result.title }}</h4>
         </a>
       </div>
@@ -15,9 +15,8 @@
 </template>
 
 <script>
-  import Vue from 'vue';
-
-  export default Vue.component('search', {
+  export default {
+    name: 'SearchBox',
     data() {
       return {
         terms: '',
@@ -27,11 +26,19 @@
         maxResults: 25,
       };
     },
+    watch: {
+      // NOTE: we watch this because the user might press the clear button in the input[type=search]
+      terms(value) {
+        if (value.length === 0) {
+          this.error = null;
+          this.results = [];
+        }
+      },
+    },
     methods: {
       /**
        * Search
        */
-      // BUG: @search event is not fired in Firefox?
       search() {
         this.error = null;
 
@@ -50,7 +57,7 @@
         }
 
         // was a youtube url pasted?
-        if (this.terms.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/)) {
+        if (this.terms.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/)) {
           this.$root.$emit('queue-video', this.terms);
           this.terms = '';
           return;
@@ -68,16 +75,17 @@
               return;
             }
 
-            this.results = res.items.map((item) => {
-              return {
-                id: item.id.videoId,
-                url: `https://www.youtube.com/watch?v=${item.id.videoId}`,
-                title: item.snippet.title,
-                thumbnail: item.snippet.thumbnails.medium,
-              };
-            });
+            this.results = res.items.map(item => ({
+              id: item.id.videoId,
+              url: `https://www.youtube.com/watch?v=${item.id.videoId}`,
+              title: item.snippet.title,
+              thumbnail: item.snippet.thumbnails.medium,
+            }));
           })
-          .catch(err => console.error(err));
+          .catch((err) => {
+            this.error = err.message;
+            this.results = [];
+          });
       },
 
       /**
@@ -90,7 +98,7 @@
         this.terms = '';
       },
     },
-  });
+  };
 </script>
 
 <style lang="scss" scoped>

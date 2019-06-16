@@ -1,12 +1,14 @@
 <template>
-  <main class="player" id="player">
+  <main id="player" class="player">
     <div class="player__iframe-container">
-      <div id="player__iframe"></div>
-      <div id="player__debug" v-if="showDebugView">
+      <div id="player__iframe" />
+      <div v-if="showDebugView" id="player__debug">
         <table class="debug-info">
           <tr>
             <td>State:</td>
-            <td :style="{ color: isOnline ? 'inherit' : 'red'}">{{ isOnline ? 'Online' : 'Offline' }}</td>
+            <td :style="{ color: isOnline ? 'inherit' : 'red'}">
+              {{ isOnline ? 'Online' : 'Offline' }}
+            </td>
           </tr>
           <tr>
             <td>Flags:</td>
@@ -31,29 +33,30 @@
 </template>
 
 <script>
-  import Vue from 'vue';
-  import store from '../store';
+  import { mapState } from 'vuex';
 
+  /* eslint-disable no-bitwise */
   const PlayerFlags = {
-    Ready:                (1 << 0), // player is ready to rock
-    Paused:               (1 << 1), // current video is paused
-    WaitForTargetState:   (1 << 2), // waiting for player to reach the target state
-    ForceUpdateStates:    (1 << 3), // states should be updated instantly
+    Ready: (1 << 0), // player is ready to rock
+    Paused: (1 << 1), // current video is paused
+    WaitForTargetState: (1 << 2), // waiting for player to reach the target state
+    ForceUpdateStates: (1 << 3), // states should be updated instantly
   };
 
   // Clone of YT.PlayerState object.
   // NOTE: because we load the youtube player API async it's not guaranteed
   //       that object will be available.
   const PlayerState = {
-    UNSTARTED:            -1,
-    ENDED:                0,
-    PLAYING:              1,
-    PAUSED:               2,
-    BUFFERING:            3,
-    CUED:                 5,
+    UNSTARTED: -1,
+    ENDED: 0,
+    PLAYING: 1,
+    PAUSED: 2,
+    BUFFERING: 3,
+    CUED: 5,
   };
 
-  export default Vue.component('youtube-player', {
+  export default {
+    name: 'YoutubePlayer',
     data() {
       return {
         player: null,
@@ -63,6 +66,22 @@
         videoToPlayWhenReady: null,
         delta: 0,
       };
+    },
+    computed: {
+      ...mapState({
+        isOnline: state => state.online,
+        isHost: state => state.host,
+        ping: state => state.ping,
+      }),
+      showDebugView: () => process.env.MODE === 'development',
+    },
+    watch: {
+      isOnline(state) {
+        // reset everything if we go offline
+        if (state === false) {
+          this.reset();
+        }
+      },
     },
     metaInfo() {
       return {
@@ -85,8 +104,8 @@
 
       this.$root.$on('server__video--clock', (data) => {
         if (this.currentState === PlayerState.UNSTARTED) return;
-        else if (this.flags & PlayerFlags.WaitForTargetState) return;
-        else if (this.currentVideo.id !== data.id) return;
+        if (this.flags & PlayerFlags.WaitForTargetState) return;
+        if (this.currentVideo.id !== data.id) return;
 
         const time = this.calcNetworkPlayerTime(data.time);
         if (time === false) return;
@@ -94,11 +113,11 @@
         this.player.seekTo(time, true);
       });
 
-      this.$root.$on('server__pong', (data) => {
+      this.$root.$on('server__pong', () => {
         if (!this.isHost) return;
-        else if (!this.currentVideo) return;
-        else if (!(this.flags & PlayerFlags.Ready)) return;
-        else if (this.flags & PlayerFlags.Paused) return;
+        if (!this.currentVideo) return;
+        if (!(this.flags & PlayerFlags.Ready)) return;
+        if (this.flags & PlayerFlags.Paused) return;
 
         this.sendVideoClockData();
         this.delta = 0;
@@ -129,15 +148,16 @@
           time = this.calcNetworkPlayerTime(video.time, true);
         }
 
-        if (typeof video.state === 'undefined') {
-          video.state = PlayerState.UNSTARTED;
-        }
-
-        console.log(`Play - Loading video... Time: ${time}, TargetState: ${this.stateToString(video.state)}`);
-
         this.currentVideo = video;
         this.currentState = PlayerState.UNSTARTED;
+
+        if (typeof video.state === 'undefined') {
+          this.currentVideo.state = PlayerState.UNSTARTED;
+        }
+
         this.player.loadVideoById(video.videoId, time, 'default');
+
+        console.log(`Play - Loading video... Time: ${time}, TargetState: ${this.stateToString(this.currentVideo.state)}`);
 
         // set the playback rate if we need to
         if (typeof video.rate !== 'undefined') {
@@ -170,12 +190,14 @@
        * Initialise YouTube player iframe
        */
       createPlayer() {
+        /* eslint-disable no-undef */
         this.player = new YT.Player('player__iframe', {
           width: 1280,
           height: 720,
           playerVars: {
-            autoplay: 1,        // always autoplay
-            modestbranding: 1,  // hide youtube logo in the control bar
+            autoplay: 1, // always autoplay
+            modestbranding: 1, // hide youtube logo in the control bar
+            playsinline: 1, // play inline videos on iOS
           },
           events: {
             onReady: this.onPlayerReady,
@@ -200,20 +222,20 @@
 
       stateToString(state = this.currentState) {
         switch (state) {
-          case PlayerState.UNSTARTED:  return 'UNSTARTED';
-          case PlayerState.ENDED:      return 'ENDED';
-          case PlayerState.PLAYING:    return 'PLAYING';
-          case PlayerState.PAUSED:     return 'PAUSED';
-          case PlayerState.BUFFERING:  return 'BUFFERING';
-          case PlayerState.CUED:       return 'VIDEO CUED';
-          default:                     return 'UNKNOWN';
+        case PlayerState.UNSTARTED: return 'UNSTARTED';
+        case PlayerState.ENDED: return 'ENDED';
+        case PlayerState.PLAYING: return 'PLAYING';
+        case PlayerState.PAUSED: return 'PAUSED';
+        case PlayerState.BUFFERING: return 'BUFFERING';
+        case PlayerState.CUED: return 'VIDEO CUED';
+        default: return 'UNKNOWN';
         }
       },
 
       /**
        * YouTube Player state changed
        */
-      // BUG: Safari will always seem to emit PAUSED when we initially load the page
+      // @BUG: Safari will always seem to emit PAUSED when we initially load the page
       // this causes everyones video to pause.
       onPlayerStateChange(event) {
         const state = event.data;
@@ -221,8 +243,8 @@
 
         // ignore unstarted and buffering states
         if (state === PlayerState.UNSTARTED) return;
-        else if (state === PlayerState.BUFFERING) return;
-        else if (state === PlayerState.ENDED && !this.isHost) return;
+        if (state === PlayerState.BUFFERING) return;
+        if (state === PlayerState.ENDED && !this.isHost) return;
 
         console.log(`PlayerStateChange - PlayerState: ${this.stateToString(state)}, CurrentState: ${this.stateToString()}`);
 
@@ -332,14 +354,14 @@
       /**
        * Calculate the real player time with ping corrections
        */
-      calcNetworkPlayerTime(time, ignore_delta = false) {
-        time = (time + (this.ping / 1000));
-        const delta = Math.abs(time - this.player.getCurrentTime());
+      calcNetworkPlayerTime(time, ignoreDelta = false) {
+        const t = (time + (this.ping / 1000));
+        const delta = Math.abs(t - this.player.getCurrentTime());
 
         // @Debugging
         this.delta = delta;
 
-        if (!ignore_delta && delta < 0.6) {
+        if (!ignoreDelta && delta < 0.6) {
           return false;
         }
 
@@ -370,31 +392,15 @@
 
 
       debugDeltaColour() {
-        if (this.delta > 0.4) return 'red'
-        else if (this.delta > 0.25) return 'orange';
+        if (this.delta > 0.4) return 'red';
+        if (this.delta > 0.25) return 'orange';
         return 'inherit';
       },
     },
-    computed: {
-      isOnline: () => store.state.online,
-      isHost: () => store.state.host,
-      ping: () => store.state.ping,
-      showDebugView: () => process.env.MODE === 'development',
-    },
-    watch: {
-      isOnline(state) {
-        // reset everything if we go offline
-        if (state === false) {
-          this.reset();
-        }
-      },
-    },
-  });
+  };
 </script>
 
 <style lang="scss">
-  @import '../mixins.scss';
-
   .player {
     grid-column: 1 / 3;
 

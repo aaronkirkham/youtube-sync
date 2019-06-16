@@ -1,0 +1,8 @@
+{
+  "eslint.enable": true,
+  "eslint.validate": [
+    "javascript",
+    { "language": "vue", "autoFix": false },
+    "vue-html"
+  ]
+}
