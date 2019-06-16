@@ -1,14 +1,23 @@
-import socketIo = require('socket.io');
+import express from 'express';
+import http from 'http';
+import socketIo from 'socket.io';
 import { Client } from './client';
 import { Room } from './room';
 
 export class Server {
+  private readonly app: any;
+  private readonly httpServ: http.Server;
   private readonly io: SocketIO.Server;
   private readonly clients: Set<Client> = new Set();
   private rooms: Room[] = [];
 
   constructor(port: number = 8888) {
-    this.io = socketIo(port, { pingInterval: 2500 });
+    this.app = express();
+    this.httpServ = http.createServer(this.app);
+    this.io = socketIo(this.httpServ, { pingInterval: 2500 });
+
+    // anyone who visits this server should go back to the main app domain
+    this.app.get('/', (req: any, res: any) => res.redirect('http://kirkh.am/youtube/'));
 
     // register client handlers on new connection
     this.io.on('connection', (socket) => {
@@ -31,7 +40,7 @@ export class Server {
       socket.on('disconnect', () => this.leave(client));
     });
 
-    console.log(`Server is listening on port ${port}...`);
+    this.httpServ.listen(port, () => console.log(`Server is listening on port ${port}...`));
   }
 
   /**
