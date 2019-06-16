@@ -15,28 +15,17 @@ export class Server {
       const client = new Client(socket);
       this.clients.add(client);
 
-      let id = null;
-      let updateUrl = false;
+      // find the target room id
+      let id = this.getRoomIdFromHeaders(socket.handshake.headers);
 
-      // do we have a room to connect to?
-      let referer = socket.handshake.headers.referer;
-      referer = referer ? referer.replace(socket.handshake.headers.origin, '') : referer;
-      if (referer && referer !== '/' && referer !== '/youtube/') {
-        // remove the leading slash
-        // id = referer.startsWith('/') ? referer.substr(1, referer.length) : referer;
-        id = referer.startsWith('/') ? referer.substr(9, referer.length) : referer;
-      } else {
-        id = this.findRoom();
-        updateUrl = true;
+      // if we don't have a room id in the headers, create a new room
+      if (!id) {
+        id = this.findNewRoomId();
+        client.send('update_url', { id });
       }
 
       // join the room
       this.join(client, id);
-
-      // if we need to update the url, send the packet
-      if (updateUrl) {
-        client.send('update_url', { id });
-      }
 
       // handle disconnect
       socket.on('disconnect', () => this.leave(client));
@@ -82,16 +71,28 @@ export class Server {
   }
 
   /**
-   * Find a room id which isn't being used
+   * Find a unique room id
    */
-  findRoom(): string {
+  findNewRoomId(): string {
     const id = Math.random().toString(36).substr(2, 7);
     const room = this.rooms.find(r => r.id === id);
 
     if (typeof room !== 'undefined') {
-      return this.findRoom();
+      return this.findNewRoomId();
     }
 
     return id;
+  }
+
+  /**
+   * Get room id from socket io handshake headers
+   * @param param
+   */
+  getRoomIdFromHeaders({ referer }: any): string {
+    if (typeof referer === 'undefined') return null;
+
+    const lastSlashPos = referer.lastIndexOf('/');
+    const roomId = referer.substr(lastSlashPos + 1, referer.length);
+    return roomId;
   }
 }

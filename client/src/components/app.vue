@@ -28,8 +28,9 @@
       };
     },
     mounted() {
-      // this.socket = io('http://localhost:8888');//, { reconnection: false, query: `timestamp=${Date.now()}` });
-      this.socket = io('http://51.9.50.6:8888');//, { reconnection: false, query: `timestamp=${Date.now()}` });
+      const url = process.env.MODE === 'development' ? 'http://localhost:8888' : 'ws://youtube-sync-server.herokuapp.com:8888';
+
+      this.socket = io(url); // { reconnection: false, query: `timestamp=${Date.now()}` }
       this.socket.on('connect', () => this.$store.commit('setOnline', true));
       this.socket.on('disconnect', () => {
         this.$store.commit('setOnline', false);
@@ -38,15 +39,14 @@
         router.push('/');
       });
 
-      this.socket.on('connect_error', err => console.error(err));
+      if (process.env.MODE === 'development') {
+        this.socket.on('connect_error', err => console.error(err));
+      }
 
       // register send events
       this.$on('send', data => this.socket.emit(`client__${data.type}`, data));
       this.$on('server__im_the_host', () => this.$store.commit('setHost', true));
-      this.$on('server__update_url', data => {
-        router.push(data.id);
-        console.log(data);
-      });
+      this.$on('server__update_url', data => router.push(data.id));
 
       // register receive events
       this.socket.on('recv', data => this.$emit(`server__${data.type}`, data));

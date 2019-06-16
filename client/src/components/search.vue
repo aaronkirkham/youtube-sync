@@ -41,7 +41,7 @@
         }
 
         // @Debugging
-        if (process.env.mode === 'development' && this.terms === '/') {
+        if (process.env.MODE === 'development' && this.terms === '/') {
           this.$root.$emit('debugQueueVideos');
           this.results = [];
           this.terms = '';

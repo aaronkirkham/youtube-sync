@@ -41,7 +41,8 @@ module.exports = (env, options) => {
     },
     plugins: [
       new webpack.EnvironmentPlugin({
-        mode: options.mode,
+        MODE: options.mode,
+        ROUTER_BASE: options.ROUTER_BASE ? options.ROUTER_BASE : '/',
       }),
       new VueLoaderPlugin(),
       new CopyWebpackPlugin([

@@ -1,6 +1,5 @@
 import { Client } from './client';
 import { Video } from './video';
-import * as clc from 'cli-color';
 
 export class Room {
   readonly id: string;

@@ -367,7 +367,7 @@
       isOnline: () => store.state.online,
       isHost: () => store.state.host,
       ping: () => store.state.ping,
-      showDebugView: () => process.env.mode === 'development',
+      showDebugView: () => process.env.MODE === 'development',
     },
     watch: {
       isOnline(state) {
