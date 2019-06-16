@@ -1,2 +1,5 @@
-RewriteEngine on
-RewriteRule ^([a-zA-Z0-9]+)$ /index.html
+<IfModule mod_rewrite.c>
+  RewriteEngine on
+  RewriteBase /
+  RewriteRule ^([a-zA-Z0-9]+)$ index.html [L]
+</IfModule>

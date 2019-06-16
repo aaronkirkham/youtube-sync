@@ -3,6 +3,7 @@
 const webpack = require('webpack');
 const path = require('path');
 const VueLoaderPlugin = require('vue-loader/lib/plugin');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 module.exports = (env, options) => {
@@ -42,11 +43,37 @@ module.exports = (env, options) => {
     plugins: [
       new webpack.EnvironmentPlugin({
         MODE: options.mode,
-        ROUTER_BASE: options.ROUTER_BASE ? options.ROUTER_BASE : '/',
+        SOCKET_URL: options.SOCKET_URL,
       }),
       new VueLoaderPlugin(),
+      new HtmlWebpackPlugin({
+        inject: false,
+        title: 'YouTube Sync',
+        template: require('html-webpack-template'),
+        appMountId: 'app',
+        appMountHtmlSnippet: '<noscript>Please enable JavaScript to use this app!</noscript>',
+        mobile: true,
+        lang: 'en',
+        links: [
+          'https://fonts.googleapis.com/css?family=PT+Sans:400,700',
+        ],
+        meta: [
+          {
+            name: 'description',
+            content: 'Synchronized YouTube video playback between multiple clients. Create a room, invite your friends and create a playlist of videos to watch together.',
+          },
+        ],
+        hash: true,
+        minify: {
+          collapseWhitespace: true,
+          removeComments: true,
+          removeRedundantAttributes: true,
+          removeScriptTypeAttributes: true,
+          removeStyleLinkTypeAttributes: true,
+          useShortDoctype: true,
+        },
+      }),
       new CopyWebpackPlugin([
-        { from: './src/index.html' },
         { from: './src/.htaccess' },
       ]),
     ],

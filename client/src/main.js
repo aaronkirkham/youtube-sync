@@ -5,4 +5,7 @@ import App from './components/app.vue';
 Vue.use(VueMeta);
 
 const vm = new Vue(App);
-window.vm = vm;
+
+if (process.env.MODE === 'development') {
+  window.vm = vm;
+}

@@ -1,24 +1,26 @@
 # YouTube Sync
-Sync youtube video playback between multiple clients. Add videos to the room playlist, invite your friends and watch together.
+Synchronized YouTube video playback between multiple clients. Create a room, invite your friends and create a playlist of videos to watch together.
 
 ### Requirements
- - NodeJS v8.6.0 or higher (object spread operator)
+- NodeJS v8.6.0 or higher (object spread operator)
+
+### Building the Client
+- `npm install`
+- `npm run build`
+
+The client files will be output in the `dist` folder. If you're planning on running the client on a server in a subdirectory, remember to edit the **RewriteBase** value inside `.htaccess`.
+
+Alternatively you can run inside webpack-dev-server by using `npm run start`. The hotreload server will be live at **localhost:8080**.
+
+*If you are running your own server which isn't using the default port, you will need to pass a custom URL in the build stage using the **SOCKET_URL** environment variable. `SOCKET_URL=http://localhost:YOUR_PORT npm run build`*
+
+### Running a Server
+- `npm install`
+- `npm run build`
+- `node ./dist/index.js`
+
+The default server port is 8888. To change this, set the **PORT** environment variable before running.
+`PORT=1234 node ./dist/index.js`.
 
 #### License
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+[MIT](LICENSE)

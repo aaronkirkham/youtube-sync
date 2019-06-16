@@ -31,6 +31,7 @@
       /**
        * Search
        */
+      // BUG: @search event is not fired in Firefox?
       search() {
         this.error = null;
 

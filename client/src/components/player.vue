@@ -41,13 +41,25 @@
     ForceUpdateStates:    (1 << 3), // states should be updated instantly
   };
 
+  // Clone of YT.PlayerState object.
+  // NOTE: because we load the youtube player API async it's not guaranteed
+  //       that object will be available.
+  const PlayerState = {
+    UNSTARTED:            -1,
+    ENDED:                0,
+    PLAYING:              1,
+    PAUSED:               2,
+    BUFFERING:            3,
+    CUED:                 5,
+  };
+
   export default Vue.component('youtube-player', {
     data() {
       return {
         player: null,
         flags: 0,
         currentVideo: null,
-        currentState: -1, // YT.PlayerState.UNSTARTED
+        currentState: PlayerState.UNSTARTED,
         videoToPlayWhenReady: null,
         delta: 0,
       };
@@ -72,7 +84,7 @@
       this.$root.$on('server__room--update', ({ current }) => this.play(current));
 
       this.$root.$on('server__video--clock', (data) => {
-        if (this.currentState === YT.PlayerState.UNSTARTED) return;
+        if (this.currentState === PlayerState.UNSTARTED) return;
         else if (this.flags & PlayerFlags.WaitForTargetState) return;
         else if (this.currentVideo.id !== data.id) return;
 
@@ -104,7 +116,7 @@
 
         // player isn't ready yet
         if (!(this.flags & PlayerFlags.Ready)) {
-          console.warn('Play - player isn\'t ready yet. video will start when playing is loaded.');
+          console.warn('Play - player isn\'t ready yet. video will start when player is loaded.');
           this.videoToPlayWhenReady = video;
           this.flags |= PlayerFlags.ForceUpdateStates;
           return;
@@ -118,13 +130,13 @@
         }
 
         if (typeof video.state === 'undefined') {
-          video.state = YT.PlayerState.UNSTARTED;
+          video.state = PlayerState.UNSTARTED;
         }
 
         console.log(`Play - Loading video... Time: ${time}, TargetState: ${this.stateToString(video.state)}`);
 
         this.currentVideo = video;
-        this.currentState = YT.PlayerState.UNSTARTED;
+        this.currentState = PlayerState.UNSTARTED;
         this.player.loadVideoById(video.videoId, time, 'default');
 
         // set the playback rate if we need to
@@ -143,7 +155,7 @@
         // reset
         this.flags = 0;
         this.currentVideo = null;
-        this.currentState = YT.PlayerState.UNSTARTED;
+        this.currentState = PlayerState.UNSTARTED;
         this.videoToPlayWhenReady = null;
         this.delta = 0;
 
@@ -162,6 +174,7 @@
           width: 1280,
           height: 720,
           playerVars: {
+            autoplay: 1,        // always autoplay
             modestbranding: 1,  // hide youtube logo in the control bar
           },
           events: {
@@ -187,34 +200,34 @@
 
       stateToString(state = this.currentState) {
         switch (state) {
-          case YT.PlayerState.UNSTARTED:  return 'UNSTARTED';
-          case YT.PlayerState.ENDED:      return 'ENDED';
-          case YT.PlayerState.PLAYING:    return 'PLAYING';
-          case YT.PlayerState.PAUSED:     return 'PAUSED';
-          case YT.PlayerState.BUFFERING:  return 'BUFFERING';
-          case YT.PlayerState.CUED:       return 'VIDEO CUED';
-          default:                        return 'UNKNOWN';
+          case PlayerState.UNSTARTED:  return 'UNSTARTED';
+          case PlayerState.ENDED:      return 'ENDED';
+          case PlayerState.PLAYING:    return 'PLAYING';
+          case PlayerState.PAUSED:     return 'PAUSED';
+          case PlayerState.BUFFERING:  return 'BUFFERING';
+          case PlayerState.CUED:       return 'VIDEO CUED';
+          default:                     return 'UNKNOWN';
         }
       },
 
       /**
        * YouTube Player state changed
        */
+      // BUG: Safari will always seem to emit PAUSED when we initially load the page
+      // this causes everyones video to pause.
       onPlayerStateChange(event) {
         const state = event.data;
         let sendStateData = true;
 
         // ignore unstarted and buffering states
-        if (state === YT.PlayerState.UNSTARTED) return;
-        else if (state === YT.PlayerState.BUFFERING) return;
-        else if (state === YT.PlayerState.ENDED && !this.isHost) return;
+        if (state === PlayerState.UNSTARTED) return;
+        else if (state === PlayerState.BUFFERING) return;
+        else if (state === PlayerState.ENDED && !this.isHost) return;
 
         console.log(`PlayerStateChange - PlayerState: ${this.stateToString(state)}, CurrentState: ${this.stateToString()}`);
 
         // video started playing and current state was unstarted
-        if (state === YT.PlayerState.PLAYING && this.currentState === YT.PlayerState.UNSTARTED) {
-          console.warn('VIDEO STARTED PLAYING');
-
+        if (state === PlayerState.PLAYING && this.currentState === PlayerState.UNSTARTED) {
           // update player states if needed
           if (this.flags & PlayerFlags.ForceUpdateStates) {
             this.updateState(this.currentVideo);
@@ -243,15 +256,14 @@
         // update the current video state
         this.currentState = state;
 
-        if (state === YT.PlayerState.PLAYING) {
+        if (state === PlayerState.PLAYING) {
           this.flags &= ~PlayerFlags.Paused;
-        } else if (state === YT.PlayerState.PAUSED) {
+        } else if (state === PlayerState.PAUSED) {
           this.flags |= PlayerFlags.Paused;
         }
 
         // send state info to the server
         if (sendStateData) {
-          console.log('sending state data..');
           this.sendVideoStateData(state);
         }
       },
@@ -283,14 +295,14 @@
 
         console.log(`UpdateState - TargetState: ${this.stateToString(state)}, Time: ${time}`);
 
-        if (state === YT.PlayerState.PLAYING) {
+        if (state === PlayerState.PLAYING) {
           this.player.playVideo();
           this.flags &= ~PlayerFlags.Paused;
-        } else if (state === YT.PlayerState.PAUSED) {
+        } else if (state === PlayerState.PAUSED) {
           this.player.seekTo(time, true);
           this.player.pauseVideo();
           this.flags |= PlayerFlags.Paused;
-        } else if (state === YT.PlayerState.ENDED) {
+        } else if (state === PlayerState.ENDED) {
           this.player.stopVideo();
         }
       },

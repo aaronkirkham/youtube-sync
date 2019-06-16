@@ -4,40 +4,60 @@
       <h1 class="logo">YouTube Sync</h1>
       <search></search>
     </header>
-    <router-view></router-view>
+    <player></player>
+    <queue></queue>
   </div>
 </template>
 
 <script>
   import store from '../store';
-  import router from '../router';
   import io from 'socket.io-client';
 
+  import Player from './player';
+  import Queue from './queue';
   import Search from './search';
 
   export default {
-    el: 'app',
+    el: '#app',
     store,
-    router,
     components: {
-      Search,
+      Player, Queue, Search,
     },
     data() {
       return {
         socket: null,
+        root: null,
       };
     },
     mounted() {
-      const url = process.env.MODE === 'development' ? 'http://localhost:8888' : 'ws://youtube-sync-server.herokuapp.com:8888';
+      let url = process.env.MODE === 'development' ? 'http://localhost:8888' : 'https://youtube-sync-server.herokuapp.com';
+
+      // if we passed a custom socket url to the build, use that instead.
+      if (typeof process.env.SOCKET_URL !== 'undefined') {
+        url = process.env.SOCKET_URL;
+      }
+
+      // figure out the root path
+      // NOTE: if the client is in a subdirectory, we need to push to the correct relative path later.
+      const { pathname } = document.location;
+      this.root = pathname.substr(0, pathname.lastIndexOf('/') + 1);
 
       this.socket = io(url); // { reconnection: false, query: `timestamp=${Date.now()}` }
       this.socket.on('connect', () => this.$store.commit('setOnline', true));
-      this.socket.on('disconnect', () => {
+      this.socket.on('disconnect', (reason) => {
         this.$store.commit('setOnline', false);
         this.$store.commit('setHost', false);
 
-        router.push('/');
+        // if the server is shutting down
+        if (reason === 'transport close') {
+          history.replaceState(null, null, this.root);
+        }
       });
+
+      // manually disconnect the socket before the window unloads
+      window.onbeforeunload = () => {
+        this.socket.disconnect();
+      };
 
       if (process.env.MODE === 'development') {
         this.socket.on('connect_error', err => console.error(err));
@@ -46,7 +66,7 @@
       // register send events
       this.$on('send', data => this.socket.emit(`client__${data.type}`, data));
       this.$on('server__im_the_host', () => this.$store.commit('setHost', true));
-      this.$on('server__update_url', data => router.push(data.id));
+      this.$on('server__update_url', data => history.replaceState(null, null, data.id));
 
       // register receive events
       this.socket.on('recv', data => this.$emit(`server__${data.type}`, data));
