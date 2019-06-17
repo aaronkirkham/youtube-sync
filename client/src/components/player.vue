@@ -34,6 +34,7 @@
 
 <script>
   import { mapState } from 'vuex';
+  import { AutoplayCapabilities, getAutoplayCapabilities } from '../autoplay';
 
   /* eslint-disable no-bitwise */
   const PlayerFlags = {
@@ -65,6 +66,7 @@
         currentState: PlayerState.UNSTARTED,
         videoToPlayWhenReady: null,
         delta: 0,
+        autoplayCaps: AutoplayCapabilities.Forbidden,
       };
     },
     computed: {
@@ -90,6 +92,9 @@
       };
     },
     created() {
+      // prefetch autoplay capabilities, so we know how to deal with the player when it loads
+      getAutoplayCapabilities((caps) => { this.autoplayCaps = caps; });
+
       const script = document.createElement('script');
       script.setAttribute('async', true);
       script.setAttribute('src', 'https://youtube.com/iframe_api');
@@ -213,22 +218,18 @@
       onPlayerReady() {
         this.flags |= PlayerFlags.Ready;
 
+        console.log('Player is ready! AutoplayCapabilities:', this.autoplayCaps);
+        if (this.autoplayCaps === AutoplayCapabilities.OnlyWhenMuted) {
+          this.player.mute();
+
+          // @TODO: Some notification to the user that they must manually unmute the video,
+          //        or update their browser autoplay permissions for this domain!
+        }
+
         // do we have a video waiting to play?
         if (this.videoToPlayWhenReady) {
           this.play(this.videoToPlayWhenReady);
           this.videoToPlayWhenReady = null;
-        }
-      },
-
-      stateToString(state = this.currentState) {
-        switch (state) {
-        case PlayerState.UNSTARTED: return 'UNSTARTED';
-        case PlayerState.ENDED: return 'ENDED';
-        case PlayerState.PLAYING: return 'PLAYING';
-        case PlayerState.PAUSED: return 'PAUSED';
-        case PlayerState.BUFFERING: return 'BUFFERING';
-        case PlayerState.CUED: return 'VIDEO CUED';
-        default: return 'UNKNOWN';
         }
       },
 
@@ -247,6 +248,24 @@
         if (state === PlayerState.ENDED && !this.isHost) return;
 
         console.log(`PlayerStateChange - PlayerState: ${this.stateToString(state)}, CurrentState: ${this.stateToString()}`);
+
+        // special case for iphone/ipod users who are not the host
+        // NOTE: enter/exiting fullscreen is weird, because the native iOS player will be running.
+        //       When we exit fullscreen, we get the PAUSED event, when we enter fullscreen we get
+        //       the PLAYING event.
+        if ((navigator.platform === 'iPhone' || navigator.platform === 'iPod') && !this.isHost) {
+          // keep the video paused
+          if (state === PlayerState.PLAYING && this.currentVideo.state !== PlayerState.PLAYING) {
+            this.player.pauseVideo();
+            return;
+          }
+
+          // keep the video playing
+          if (state === PlayerState.PAUSED && this.currentVideo.state !== PlayerState.PAUSED) {
+            this.player.playVideo();
+            return;
+          }
+        }
 
         // video started playing and current state was unstarted
         if (state === PlayerState.PLAYING && this.currentState === PlayerState.UNSTARTED) {
@@ -306,6 +325,13 @@
       updateState({ state, time = 0 }) {
         if (!(this.flags & PlayerFlags.Ready)) {
           console.error('UpdateState - player isn\'t ready yet!');
+
+          // @BUG: this can sometimes occur!
+          // a solution would be the data passed to this function, then once the youtube
+          // player is ready, invoke this function again with the stored data.
+
+          // I don't yet have a good reproduction, but something with loading the video
+          // when another client is updating state.
         }
 
         if (this.currentVideo) {
@@ -395,6 +421,18 @@
         if (this.delta > 0.4) return 'red';
         if (this.delta > 0.25) return 'orange';
         return 'inherit';
+      },
+ 
+      stateToString(state = this.currentState) {
+        switch (state) {
+        case PlayerState.UNSTARTED: return 'UNSTARTED';
+        case PlayerState.ENDED: return 'ENDED';
+        case PlayerState.PLAYING: return 'PLAYING';
+        case PlayerState.PAUSED: return 'PAUSED';
+        case PlayerState.BUFFERING: return 'BUFFERING';
+        case PlayerState.CUED: return 'VIDEO CUED';
+        default: return 'UNKNOWN';
+        }
       },
     },
   };
