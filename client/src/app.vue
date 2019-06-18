@@ -141,8 +141,10 @@
   #app {
     display: grid;
     grid-gap: 25px;
-    grid-template-columns: 79.478% auto;
-    max-width: 1340px;
+    // grid-template-columns: 79.478% auto;
+    grid-template-columns: 83.975% auto;
+    // max-width: 1340px;
+    max-width: 1920px;
     margin: 0 auto;
 
     &.connecting {
@@ -158,7 +160,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin: 7px 0 60px;
+    // margin: 7px 0 60px;
+    margin: 7px 0 25px;
 
     .logo {
       display: flex;

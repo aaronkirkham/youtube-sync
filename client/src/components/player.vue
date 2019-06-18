@@ -422,7 +422,7 @@
         if (this.delta > 0.25) return 'orange';
         return 'inherit';
       },
- 
+
       stateToString(state = this.currentState) {
         switch (state) {
         case PlayerState.UNSTARTED: return 'UNSTARTED';

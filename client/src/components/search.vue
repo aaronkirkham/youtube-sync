@@ -24,6 +24,7 @@
         error: null,
         key: 'AIzaSyAi4w58SdvfLfxjuznzWUNF8R-_wVNul6M',
         maxResults: 25,
+        decoder: null,
       };
     },
     watch: {
@@ -78,7 +79,7 @@
             this.results = res.items.map(item => ({
               id: item.id.videoId,
               url: `https://www.youtube.com/watch?v=${item.id.videoId}`,
-              title: item.snippet.title,
+              title: this.decodeCharacters(item.snippet.title),
               thumbnail: item.snippet.thumbnails.medium,
             }));
           })
@@ -86,6 +87,18 @@
             this.error = err.message;
             this.results = [];
           });
+      },
+
+      /**
+       * Decode encoded characters returned from the YouTube API
+       */
+      decodeCharacters(html) {
+        if (!this.decoder) {
+          this.decoder = document.createElement('div');
+        }
+
+        this.decoder.innerHTML = html;
+        return this.decoder.textContent;
       },
 
       /**
@@ -129,7 +142,7 @@
 
   .search__results {
     position: absolute;
-    top: calc(100% + 25px);
+    top: calc(100% + 40px);
     left: 0;
     width: 100%;
     background-color: white;
@@ -141,7 +154,7 @@
       content: "";
       position: absolute;
       bottom: 100%;
-      left: 470px;
+      right: 240px;
       width: 0;
       height: 0;
       border: solid transparent;

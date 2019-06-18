@@ -39,4 +39,5 @@ jspm_packages
 #
 client/public/index.html
 client/public/app.js
+client/public/assets/
 server/dist

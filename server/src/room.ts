@@ -30,6 +30,7 @@ export class Room {
     client.on('queue--add', data => this.queueAdd(client, data));
     client.on('queue--remove', data => this.queueRemove(client, data));
     client.on('queue--order', data => this.queueOrder(client, data));
+    client.on('queue--play', data => this.queuePlay(client, data));
     client.on('video--update', data => this.updateVideo(client, data));
     client.on('video--playbackrate', data => this.updateVideoPlaybackRate(client, data));
     client.on('video--clock', data => this.syncClock(client, data));
@@ -110,6 +111,25 @@ export class Room {
     const { order } = data;
     this.queue.sort((a, b) => order.indexOf(a.id) > order.indexOf(b.id) ? 1 : -1);
     this.emit('queue--order', { order }, client);
+  }
+
+  /**
+   * Play a video which is in the queue and remove it from the queue
+   * @param client Client who sent the request
+   * @param data Object containing information about the video to play
+   */
+  queuePlay(client: Client, data: any): void {
+    const { id } = data;
+
+    const video = this.queue.find(v => v.id === id);
+    if (typeof video !== 'undefined') {
+      // set the video as the current video and play
+      this.current = video;
+      this.emit('video--play', video.data());
+
+      // remove the item from the queue
+      this.queueRemove(client, { id });
+    }
   }
 
   /**

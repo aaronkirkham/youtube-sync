@@ -3,7 +3,7 @@
     <h2 class="queue__title">Up Next</h2>
     <draggable ref="draggable" v-model="items" animation="100" class="queue__container" @change="change" @start="startDrag()" @end="stopDrag()">
       <transition-group name="draggable-list" tag="div">
-        <div v-for="video in items" :key="video.id" class="queue-item-container">
+        <div v-for="video in items" :key="video.id" class="queue-item-container" @contextmenu.prevent="$refs.menu.open($event, { video })">
           <div class="queue-item">
             <img :src="video.thumbnail" class="queue-item__thumbnail">
             <div class="queue-item__content">
@@ -13,6 +13,16 @@
         </div>
       </transition-group>
     </draggable>
+    <vue-context ref="menu">
+      <template v-if="child.data" slot-scope="child">
+        <li>
+          <a href="#" @click.prevent="requestPlay(child.data.video)">Play</a>
+        </li>
+        <li>
+          <a href="#" @click.prevent="requestRemove(child.data.video)">Remove</a>
+        </li>
+      </template>
+    </vue-context>
     <div v-if="items.length === 0" class="queue__empty">
       <svg xmlns="http://www.w3.org/2000/svg" width="46.47" height="46.47">
         <path d="M46.222 41.889a2.998 2.998 0 0 1-1.562 3.943 2.997 2.997 0 0 1-3.944-1.562c-2.893-6.689-9.73-11.012-17.421-11.012-7.868 0-14.747 4.32-17.523 11.004a3.003 3.003 0 0 1-3.922 1.621 3.002 3.002 0 0 1-1.62-3.922c3.71-8.932 12.764-14.703 23.064-14.703 10.085.002 19.085 5.744 22.928 14.631zM2.445 6.559a6.202 6.202 0 1 1 12.399.001A6.202 6.202 0 0 1 2.445 6.56zm28.117 0a6.202 6.202 0 1 1 12.403.001 6.202 6.202 0 0 1-12.403-.001z" />
@@ -25,13 +35,19 @@
 <script>
   import { mapState } from 'vuex';
   import Draggable from 'vuedraggable';
+  import { VueContext } from 'vue-context';
 
   export default {
     name: 'PlayerQueue',
-    components: { Draggable },
+    components: { Draggable, VueContext },
     data() {
       return {
         items: [],
+        contextItems: [
+          {
+            label: 'Hello World',
+          },
+        ],
       };
     },
     computed: mapState({
@@ -46,6 +62,7 @@
       },
     },
     mounted() {
+      console.log(this.$refs);
       this.$root.$on('server__queue--add', this.add);
       this.$root.$on('server__queue--remove', this.remove);
       this.$root.$on('server__queue--order', this.order);
@@ -201,8 +218,15 @@
        * Tell the server we want to remove a video from the queue
        * NOTE: We expect the server to send us 'server__queue--remove'
        */
-      requestRemove(video) {
-        this.$root.$emit('send', { type: 'queue--remove', id: video.id });
+      requestRemove({ id }) {
+        this.$root.$emit('send', { type: 'queue--remove', id });
+      },
+
+      /**
+       * Tell the server we want to play a video in the queue now
+       */
+      requestPlay({ id }) {
+        this.$root.$emit('send', { type: 'queue--play', id });
       },
 
       // @Debugging
