@@ -92,7 +92,7 @@
        * Queue a search result which was clicked in the search results window
        */
       queueResult(result) {
-        this.$root.$emit('queue-video', result.url);
+        this.$root.$emit('queue-video', result);
 
         this.results = [];
         this.terms = '';
@@ -105,7 +105,6 @@
   .search {
     width: 100%;
     max-width: 500px;
-    margin-left: 50px;
 
     input {
       position: relative;

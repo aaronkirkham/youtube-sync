@@ -1,7 +1,10 @@
 <template>
   <div id="app" :class="{ 'connecting': !isOnline }">
     <header class="primary-header" role="banner">
-      <h1 class="logo">YouTube Sync</h1>
+      <h1 class="logo">
+        <img :src="logo" class="logo-icon">
+        YouTube Sync
+      </h1>
       <SearchBox />
     </header>
     <YoutubePlayer />
@@ -39,11 +42,13 @@
   import YoutubePlayer from './components/player.vue';
   import PlayerQueue from './components/queue.vue';
   import SearchBox from './components/search.vue';
+  import Logo from './assets/logo.svg';
 
   export default {
     components: { YoutubePlayer, PlayerQueue, SearchBox },
     data() {
       return {
+        logo: Logo,
         socket: null,
         connectStatus: 'Connecting to server...',
         connectError: null,
@@ -117,11 +122,11 @@
   }
 
   body {
-    background-image: radial-gradient(circle at 0% 0%, #373b52, #252736 51%, #1d1e26);
+    background-image: linear-gradient(0deg, #272e37 0%, #32383f 100%);
     font-family: 'PT Sans', sans-serif;
     font-weight: 700;
     color: #ffffff;
-    padding: 25px;
+    padding: 50px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overscroll-behavior: none none;
@@ -135,8 +140,10 @@
 
   #app {
     display: grid;
-    grid-gap: 50px;
-    grid-template-columns: auto auto 30%;
+    grid-gap: 25px;
+    grid-template-columns: 79.478% auto;
+    max-width: 1340px;
+    margin: 0 auto;
 
     &.connecting {
       > *:not(.spinner) {
@@ -147,9 +154,22 @@
 
   .primary-header {
     position: relative;
-    grid-column: 1 / 4;
+    grid-column: 1 / 3;
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    margin: 7px 0 60px;
+
+    .logo {
+      display: flex;
+      align-items: center;
+      margin: 0;
+    }
+
+    .logo-icon {
+      margin-right: 20px;
+      pointer-events: none;
+    }
   }
 
   .spinner {

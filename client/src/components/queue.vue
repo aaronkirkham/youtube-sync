@@ -1,18 +1,14 @@
 <template>
   <aside class="queue">
-    <draggable ref="draggable" v-model="items" animation="100" class="queue__container" @start="startDrag()" @end="stopDrag()">
+    <h2 class="queue__title">Up Next</h2>
+    <draggable ref="draggable" v-model="items" animation="100" class="queue__container" @change="change" @start="startDrag()" @end="stopDrag()">
       <transition-group name="draggable-list" tag="div">
         <div v-for="video in items" :key="video.id" class="queue-item-container">
           <div class="queue-item">
-            <div class="queue-item__thumbnail-container">
-              <img :src="video.thumbnail" class="queue-item__thumbnail">
+            <img :src="video.thumbnail" class="queue-item__thumbnail">
+            <div class="queue-item__content">
+              <h2 class="queue-item__title">{{ video.title }}</h2>
             </div>
-            <p class="queue-item__title">{{ video.title }}</p>
-            <button class="button--no-native queue-item__remove" title="Remove video from queue" @click="requestRemove(video)">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="feather feather-x">
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
-            </button>
           </div>
         </div>
       </transition-group>
@@ -58,6 +54,35 @@
 
       // @Debugging
       this.$root.$on('debugQueueVideos', this.debugQueueVideos);
+
+      // @Debugging
+      // this.items.push({
+      //   id: 'sQUmD1jVCxM',
+      //   title: 'Edlan - Go Back Home (Ft. MVE & Neil)',
+      //   url: 'https://www.youtube.com/watch?v=sQUmD1jVCxM',
+      //   thumbnail: 'https://i.ytimg.com/vi/sQUmD1jVCxM/mqdefault.jpg',
+      // });
+
+      // this.items.push({
+      //   id: 'diliY4ERkLU',
+      //   title: 'Hybrid Minds - Kismet ft. Riya',
+      //   url: 'https://www.youtube.com/watch?v=diliY4ERkLU',
+      //   thumbnail: 'https://i.ytimg.com/vi/diliY4ERkLU/mqdefault.jpg',
+      // });
+
+      // this.items.push({
+      //   id: '-fCtvurGDD8',
+      //   title: 'Birdy - Wings (Nu:Logic Remix)',
+      //   url: 'https://www.youtube.com/watch?v=-fCtvurGDD8',
+      //   thumbnail: 'https://i.ytimg.com/vi/-fCtvurGDD8/mqdefault.jpg',
+      // });
+
+      // this.items.push({
+      //   id: 'oySqE3z99AE',
+      //   title: 'Hybrid Minds - Inside (ft. Emily Jones)',
+      //   url: 'https://www.youtube.com/watch?v=oySqE3z99AE',
+      //   thumbnail: 'https://i.ytimg.com/vi/oySqE3z99AE/mqdefault.jpg',
+      // });
     },
     methods: {
       /**
@@ -65,7 +90,6 @@
        * NOTE: This does not tell the server
        */
       add(video) {
-        console.log('add to queue', video);
         this.items.push(video);
       },
 
@@ -102,39 +126,75 @@
       stopDrag() {
         const classes = this.$refs.draggable.$el.classList;
         classes.remove('dragging');
+        setTimeout(() => classes.remove('no-sort-animation'), 150);
+      },
 
+      /**
+       * Event fired when queue order changed
+       */
+      change({ moved }) {
+        // find the element which replaced the dragged one
+        const elements = this.$refs.draggable.$el.querySelectorAll('.queue-item-container');
+        const oldElement = elements[moved.oldIndex].firstChild;
+        const newElement = elements[moved.newIndex].firstChild;
+
+        /**
+         * NOTE: When we drag an item and move it, the hover state will be applied to the
+         * index of the item where we initially started dragging from. That's ugly, so this
+         * little hack will forcefully chance the hover states using CSS.
+         */
+        const undoHackToFixBrowserBug = () => {
+          oldElement.classList.remove('no-hover-animations');
+          newElement.classList.remove('force-hover-animations');
+          document.removeEventListener('mousemove', undoHackToFixBrowserBug, false);
+        };
+
+        oldElement.classList.add('no-hover-animations');
+        newElement.classList.add('force-hover-animations');
+        document.addEventListener('mousemove', undoHackToFixBrowserBug, false);
+
+        // send updated order to the server!
         const order = this.items.map(item => item.id);
         this.$root.$emit('send', { type: 'queue--order', order });
-
-        setTimeout(() => classes.remove('no-sort-animation'), 150);
       },
 
       /**
        * Tell the server we want to queue a video
        * NOTE: We expect the server to send us 'server__queue--add'
        */
-      requestAdd(videoUrl) {
-        // ensure the url is valid
-        const segments = videoUrl.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/);
-        if (segments === null || typeof segments[2] === 'undefined' || segments[2].length === 0) {
-          console.error('invalid youtube url!');
-          // TODO: client errors
-          return;
-        }
+      requestAdd(video) {
+        if (typeof video === 'string') {
+          // ensure the url is valid
+          const segments = video.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/);
+          if (segments === null || typeof segments[2] === 'undefined' || segments[2].length === 0) {
+            console.error('invalid youtube url!');
+            // @TODO: client errors
+            return;
+          }
 
-        fetch(`https://noembed.com/embed?url=${videoUrl}`, { method: 'get' })
-          .then(res => res.json())
-          .then((data) => {
-            const { title, url } = data;
-            this.$root.$emit('send', {
-              type: 'queue--add',
-              id: segments[2],
-              thumbnail: data.thumbnail_url,
-              title,
-              url,
-            });
-          })
-          .catch(err => console.error(err));
+          fetch(`https://noembed.com/embed?url=${video}`, { method: 'get' })
+            .then(res => res.json())
+            .then((data) => {
+              const { title, url } = data;
+              this.$root.$emit('send', {
+                type: 'queue--add',
+                id: segments[2],
+                thumbnail: data.thumbnail_url.replace('hqdefault', 'mqdefault'),
+                title,
+                url,
+              });
+            })
+            .catch(err => console.error(err));
+        } else if (typeof video === 'object') {
+          const { id, title, url } = video;
+          this.$root.$emit('send', {
+            type: 'queue--add',
+            id,
+            thumbnail: video.thumbnail.url,
+            title,
+            url,
+          });
+        }
       },
 
       /**
@@ -152,7 +212,7 @@
           id: 'oySqE3z99AE',
           title: 'Hybrid Minds - Inside (ft. Emily Jones)',
           url: 'https://www.youtube.com/watch?v=oySqE3z99AE',
-          thumbnail: 'https://i.ytimg.com/vi/oySqE3z99AE/hqdefault.jpg',
+          thumbnail: 'https://i.ytimg.com/vi/oySqE3z99AE/mqdefault.jpg',
         });
 
         this.$root.$emit('send', {
@@ -160,7 +220,7 @@
           id: 'JSxCc2e3BEE',
           title: 'Hybrid Minds - Liquicity Winterfestival 2017',
           url: 'https://www.youtube.com/watch?v=JSxCc2e3BEE',
-          thumbnail: 'https://i.ytimg.com/vi/JSxCc2e3BEE/hqdefault.jpg',
+          thumbnail: 'https://i.ytimg.com/vi/JSxCc2e3BEE/mqdefault.jpg',
         });
 
         this.$root.$emit('send', {
@@ -168,7 +228,7 @@
           id: '-fCtvurGDD8',
           title: 'Birdy - Wings (Nu:Logic Remix)',
           url: 'https://www.youtube.com/watch?v=-fCtvurGDD8',
-          thumbnail: 'https://i.ytimg.com/vi/-fCtvurGDD8/hqdefault.jpg',
+          thumbnail: 'https://i.ytimg.com/vi/-fCtvurGDD8/mqdefault.jpg',
         });
       },
     },
@@ -191,24 +251,31 @@
     .queue-item {
       background-color: rgba(0, 0, 0, 0.2);
 
-      > * {
-        display: none;
-      }
+      > * { opacity: 0; }
     }
   }
 
   .queue {
     position: relative;
-    grid-column: 3;
+    font-size: 15px;
+    font-weight: 700;
+    color: #ffffff;
+  }
+
+  .queue__title {
+    font-size: inherit;
+    text-transform: uppercase;
+    margin-top: 0;
+    margin-bottom: 10px;
   }
 
   .queue__container {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    overflow-y: auto;
+    // position: absolute;
+    // top: 0;
+    // left: 0;
+    // width: 100%;
+    // height: 100%;
+    // overflow-y: auto;
 
     // only use animations if the sort was done by the server (another user re-ordered the queue)
     &:not(.no-sort-animation) {
@@ -219,13 +286,12 @@
 
     // show hover FX and remove button if we are not dragging the item
     &:not(.dragging):not(.sortable-chosen) {
-      .queue-item {
+      .queue-item:not(.no-hover-animations) {
+        &.force-hover-animations,
         &:hover {
-          box-shadow: 0 4px 4px 0 rgba(0, 0, 0, 0.20);
-
-          .queue-item__remove {
-            opacity: 1;
-            visibility: visible;
+          .queue-item__thumbnail { opacity: 1; }
+          .queue-item__content {
+            > *, &::before { opacity: 1; }
           }
         }
       }
@@ -233,62 +299,67 @@
   }
 
   .queue-item-container {
-    padding: 5px 0;
     user-select: none;
+
+    &:not(:last-child) {
+      margin-bottom: 10px;
+    }
   }
 
   .queue-item {
     position: relative;
-    font-size: 15px;
-    padding: 10px;
-    height: 100px;
-    background-color: rgba(255, 255, 255, 0.10);
+    line-height: 0;
+    border-radius: 2px;
     @include transition(all);
     cursor: move;
     cursor: -webkit-grab;
     cursor: -moz-grab;
     cursor: grab;
+  }
 
-    .queue-item__thumbnail-container {
-      float: left;
-      width: 153px;
-      height: 80px;
-      overflow: hidden;
-      padding-right: 10px;
-    }
+  .queue-item__thumbnail {
+    max-width: 100%;
+    height: auto;
+    border-radius: inherit;
+    opacity: 0.75;
+    transition: opacity 150ms ease-in-out;
+  }
 
-    .queue-item__thumbnail {
-      width: inherit;
-      height: inherit;
-      object-fit: cover;
-    }
+  .queue-item__content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    padding: 15px;
+    display: flex;
+    align-items: flex-end;
+    line-height: 1.15;
 
-    // .queue-item__actions {
-    //   opacity: 0;
-    //   visibility: hidden;
-    //   @include transition(all);
-    // }
-
-    .queue-item__remove {
+    &::before {
+      content: "";
       position: absolute;
-      top: 10px;
-      right: 10px;
-      cursor: pointer;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: linear-gradient(-180deg, rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, 0.60) 80%);
       opacity: 0;
-      visibility: hidden;
-      @include transition(all);
-
-      &:hover {
-        svg {
-          stroke: #ffffff;
-        }
-      }
-
-      svg {
-        stroke: rgba(255, 255, 255, 0.35);
-        @include transition(stroke);
-      }
+      transition: opacity 150ms ease-in-out;
     }
+
+    > * {
+      position: relative;
+      z-index: 1;
+      opacity: 0;
+      transition: opacity 150ms ease-in-out;
+    }
+  }
+
+  .queue-item__title {
+    font-size: 14px;
+    text-shadow: 1px 2px 0 rgba(0, 0, 0, 0.35);
+    margin: 0;
   }
 
   .queue__empty {

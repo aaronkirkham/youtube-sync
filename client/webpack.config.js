@@ -37,6 +37,10 @@ module.exports = (env, options) => {
           test: /\.vue$/,
           use: 'vue-loader',
         },
+        {
+          test: /\.(png|jpg|gif|svg|woff|woff2|eot|ttf)$/,
+          use: 'url-loader?name=[name].[hash:7].[ext]',
+        },
       ],
     },
     plugins: [

@@ -16,7 +16,7 @@
           </tr>
           <tr>
             <td>Ping:</td>
-            <td>{{ ping }}</td>
+            <td>{{ ping }} ms</td>
           </tr>
           <tr>
             <td>Is Host:</td>
@@ -440,8 +440,6 @@
 
 <style lang="scss">
   .player {
-    grid-column: 1 / 3;
-
     // 16:9 player aspect ratio
     .player__iframe-container {
       position: relative;
