@@ -146,6 +146,11 @@
           return;
         }
 
+        // if there is already a video playing, wait for the target from the host
+        if (!this.isHost && this.currentState === PlayerState.PLAYING) {
+          this.flags |= PlayerFlags.WaitForTargetState;
+        }
+
         let time = video.time ? video.time : 0;
 
         // if the video is playing, calculate the network player time
@@ -339,7 +344,9 @@
         }
 
         // set the set by server flag, so we ignore the state change events later
-        this.flags |= PlayerFlags.WaitForTargetState;
+        if (this.currentState !== state) {
+          this.flags |= PlayerFlags.WaitForTargetState;
+        }
 
         console.log(`UpdateState - TargetState: ${this.stateToString(state)}, Time: ${time}`);
 
