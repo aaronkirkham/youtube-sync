@@ -1,4 +1,4 @@
-# YouTube Sync
+# ![](./client/src/assets/logo-with-text.png)
 Synchronized YouTube video playback between multiple clients. Create a room, invite your friends and create a playlist of videos to watch together.
 
 ### Requirements
@@ -22,5 +22,5 @@ Alternatively you can run inside webpack-dev-server by using `npm run start`. Th
 The default server port is 8888. To change this, set the **PORT** environment variable before running.
 `PORT=1234 node ./dist/index.js`.
 
-#### License
-[MIT](LICENSE)
+### License
+This repository is licensed under MIT. [View license ›](LICENSE)

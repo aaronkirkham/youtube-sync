@@ -1,5 +1,5 @@
 <template>
-  <div class="search">
+  <div v-click-outside="close" class="search">
     <input v-model="terms" type="search" placeholder="Search YouTube or Paste URL" @click="click" @keyup.enter="search">
     <p v-if="error" style="color:red;">{{ error }}</p>
 
@@ -47,6 +47,14 @@
         if (this.results.length !== 0) {
           this.showResults = true;
         }
+      },
+
+      /**
+       * Event fired once the user clicks outside the search box.
+       * Hide the search results panel
+       */
+      close() {
+        this.showResults = false;
       },
 
       /**

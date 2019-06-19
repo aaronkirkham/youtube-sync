@@ -62,7 +62,6 @@
       },
     },
     mounted() {
-      console.log(this.$refs);
       this.$root.$on('server__queue--add', this.add);
       this.$root.$on('server__queue--remove', this.remove);
       this.$root.$on('server__queue--order', this.order);
