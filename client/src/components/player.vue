@@ -359,6 +359,8 @@
         // set the set by server flag, so we ignore the state change events later
         if (this.currentState !== state) {
           this.flags |= PlayerFlags.WaitForTargetState;
+        } else if (this.flags & PlayerFlags.WaitForTargetState) {
+          this.flags &= ~PlayerFlags.WaitForTargetState;
         }
 
         console.log(`UpdateState - TargetState: ${this.stateToString(state)}, Time: ${time}`);
