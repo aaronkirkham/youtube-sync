@@ -1,6 +1,6 @@
 <template>
   <aside class="queue">
-    <h2 class="queue__title">Up Next</h2>
+    <h2 v-if="items.length !== 0" class="queue__title">Up Next</h2>
     <draggable ref="draggable" v-model="items" animation="100" class="queue__container" @change="change" @start="startDrag()" @end="stopDrag()">
       <transition-group name="draggable-list" tag="div">
         <div v-for="video in items" :key="video.id" class="queue-item-container" @contextmenu.prevent="$refs.menu.open($event, { video })">
@@ -24,10 +24,10 @@
       </template>
     </vue-context>
     <div v-if="items.length === 0" class="queue__empty">
-      <svg xmlns="http://www.w3.org/2000/svg" width="46.47" height="46.47">
+      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 46.47 46.47">
         <path d="M46.222 41.889a2.998 2.998 0 0 1-1.562 3.943 2.997 2.997 0 0 1-3.944-1.562c-2.893-6.689-9.73-11.012-17.421-11.012-7.868 0-14.747 4.32-17.523 11.004a3.003 3.003 0 0 1-3.922 1.621 3.002 3.002 0 0 1-1.62-3.922c3.71-8.932 12.764-14.703 23.064-14.703 10.085.002 19.085 5.744 22.928 14.631zM2.445 6.559a6.202 6.202 0 1 1 12.399.001A6.202 6.202 0 0 1 2.445 6.56zm28.117 0a6.202 6.202 0 1 1 12.403.001 6.202 6.202 0 0 1-12.403-.001z" />
       </svg>
-      <p>Nothing in the queue</p>
+      <h3>Nothing in the queue</h3>
     </div>
   </aside>
 </template>
@@ -43,11 +43,6 @@
     data() {
       return {
         items: [],
-        contextItems: [
-          {
-            label: 'Hello World',
-          },
-        ],
       };
     },
     computed: mapState({
@@ -283,6 +278,22 @@
     font-size: 15px;
     font-weight: 700;
     color: #ffffff;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+      border-radius: 12px;
+      background-color: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      width: 8px;
+      min-height: 32px;
+      border-radius: 12px;
+      background-color: rgba(255, 255, 255, 0.25);
+    }
   }
 
   .queue__title {
@@ -293,12 +304,13 @@
   }
 
   .queue__container {
-    // position: absolute;
-    // top: 0;
-    // left: 0;
-    // width: 100%;
-    // height: 100%;
-    // overflow-y: auto;
+    position: absolute;
+    top: 25px;
+    left: 0;
+    width: 100%;
+    height: calc(100% - 25px);
+    overflow-y: auto; /* fallback for firefox */
+    overflow-y: overlay;
 
     // only use animations if the sort was done by the server (another user re-ordered the queue)
     &:not(.no-sort-animation) {
@@ -396,7 +408,11 @@
 
     svg {
       fill: rgba(255, 255, 255, 0.5);
-      margin-bottom: 25px;
+      margin-bottom: 10px;
+    }
+
+    h3 {
+      font-size: 16px;
     }
   }
 </style>

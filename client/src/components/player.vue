@@ -470,7 +470,6 @@
       padding-bottom: 56.25%;
       height: 0;
       overflow: hidden;
-      margin-bottom: 20px;
       border-radius: 2px;
 
       iframe {
