@@ -27,6 +27,12 @@ export class Server {
       // find the target room id
       let id = this.getRoomIdFromHeaders(socket.handshake.headers);
 
+      // if that room doesn't exist, generate a new one
+      // NOTE: this is so users can't type very long strings as the room id
+      if (id && !this.getRoom(id)) {
+        id = null;
+      }
+
       // if we don't have a room id in the headers, create a new room
       if (!id) {
         id = this.findNewRoomId();
@@ -49,10 +55,10 @@ export class Server {
    * @param id Room id which the client joined
    */
   join(client: Client, id: string): void {
-    let room = this.rooms.find(r => r.id === id);
+    let room = this.getRoom(id);
 
     // create the room if we need to
-    if (typeof room === 'undefined') {
+    if (!room) {
       room = new Room(id);
       this.rooms.push(room);
     }
@@ -91,6 +97,14 @@ export class Server {
     }
 
     return id;
+  }
+
+  /**
+   * Find a room from a given id
+   * @param id ID of the room to find
+   */
+  getRoom(id: string): Room {
+    return this.rooms.find(room => room.id === id);
   }
 
   /**

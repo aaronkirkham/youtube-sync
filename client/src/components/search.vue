@@ -1,9 +1,9 @@
 <template>
-  <div class="search">
-    <input v-model="terms" type="search" placeholder="Search YouTube or Paste URL" @keyup.enter="search">
+  <div v-click-outside="close" class="search">
+    <input v-model="terms" type="search" placeholder="Search YouTube or Paste URL" @click="click" @keyup.enter="search">
     <p v-if="error" style="color:red;">{{ error }}</p>
 
-    <div v-if="results.length !== 0" class="search__results">
+    <div v-if="showResults" class="search__results">
       <div class="search__results-scroll-container">
         <a v-for="(result, idx) in results" :key="idx" class="search-result" :href="result.url" target="_blank" @click.prevent="queueResult(result)">
           <img :src="result.thumbnail.url" :alt="result.title" :width="result.thumbnail.width" :height="result.thumbnail.height" class="search-result__thumbnail">
@@ -20,10 +20,12 @@
     data() {
       return {
         terms: '',
+        showResults: false,
         results: [],
         error: null,
         key: 'AIzaSyAi4w58SdvfLfxjuznzWUNF8R-_wVNul6M',
         maxResults: 25,
+        decoder: null,
       };
     },
     watch: {
@@ -31,19 +33,39 @@
       terms(value) {
         if (value.length === 0) {
           this.error = null;
+          this.showResults = false;
           this.results = [];
         }
       },
     },
     methods: {
       /**
-       * Search
+       * Event fired once the user clicks in the search box.
+       * Now we show the latest stored results back to the user
+       */
+      click() {
+        if (this.results.length !== 0) {
+          this.showResults = true;
+        }
+      },
+
+      /**
+       * Event fired once the user clicks outside the search box.
+       * Hide the search results panel
+       */
+      close() {
+        this.showResults = false;
+      },
+
+      /**
+       * Event fired once the user hits enter in the search box.
        */
       search() {
         this.error = null;
 
         // if the terms are empty, reset the results list
         if (this.terms.length === 0) {
+          this.showResults = false;
           this.results = [];
           return;
         }
@@ -51,6 +73,7 @@
         // @Debugging
         if (process.env.MODE === 'development' && this.terms === '/') {
           this.$root.$emit('debugQueueVideos');
+          this.showResults = false;
           this.results = [];
           this.terms = '';
           return;
@@ -71,31 +94,46 @@
 
             if (res.error) {
               this.error = res.error.message;
+              this.showResults = false;
               this.results = [];
               return;
             }
 
+            this.showResults = true;
             this.results = res.items.map(item => ({
               id: item.id.videoId,
               url: `https://www.youtube.com/watch?v=${item.id.videoId}`,
-              title: item.snippet.title,
+              title: this.decodeCharacters(item.snippet.title),
               thumbnail: item.snippet.thumbnails.medium,
             }));
           })
           .catch((err) => {
             this.error = err.message;
+            this.showResults = false;
             this.results = [];
           });
+      },
+
+      /**
+       * Decode encoded characters returned from the YouTube API
+       */
+      decodeCharacters(html) {
+        if (!this.decoder) {
+          this.decoder = document.createElement('div');
+        }
+
+        this.decoder.innerHTML = html;
+        return this.decoder.textContent;
       },
 
       /**
        * Queue a search result which was clicked in the search results window
        */
       queueResult(result) {
-        this.$root.$emit('queue-video', result.url);
+        this.$root.$emit('queue-video', result);
 
-        this.results = [];
-        this.terms = '';
+        // hide the search results window
+        this.showResults = false;
       },
     },
   };
@@ -105,7 +143,6 @@
   .search {
     width: 100%;
     max-width: 500px;
-    margin-left: 50px;
 
     input {
       position: relative;
@@ -130,7 +167,7 @@
 
   .search__results {
     position: absolute;
-    top: calc(100% + 25px);
+    top: calc(100% + 40px);
     left: 0;
     width: 100%;
     background-color: white;
@@ -142,7 +179,7 @@
       content: "";
       position: absolute;
       bottom: 100%;
-      left: 470px;
+      right: 240px;
       width: 0;
       height: 0;
       border: solid transparent;

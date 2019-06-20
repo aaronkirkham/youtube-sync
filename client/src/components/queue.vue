@@ -1,27 +1,33 @@
 <template>
   <aside class="queue">
-    <draggable ref="draggable" v-model="items" animation="100" class="queue__container" @start="startDrag()" @end="stopDrag()">
+    <h2 v-if="items.length !== 0" class="queue__title">Up Next</h2>
+    <draggable ref="draggable" v-model="items" animation="100" class="queue__container" @change="change" @start="startDrag()" @end="stopDrag()">
       <transition-group name="draggable-list" tag="div">
-        <div v-for="video in items" :key="video.id" class="queue-item-container">
+        <div v-for="video in items" :key="video.id" class="queue-item-container" @contextmenu.prevent="$refs.menu.open($event, { video })">
           <div class="queue-item">
-            <div class="queue-item__thumbnail-container">
-              <img :src="video.thumbnail" class="queue-item__thumbnail">
+            <img :src="video.thumbnail" class="queue-item__thumbnail">
+            <div class="queue-item__content">
+              <h2 class="queue-item__title">{{ video.title }}</h2>
             </div>
-            <p class="queue-item__title">{{ video.title }}</p>
-            <button class="button--no-native queue-item__remove" title="Remove video from queue" @click="requestRemove(video)">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="feather feather-x">
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
-            </button>
           </div>
         </div>
       </transition-group>
     </draggable>
+    <vue-context ref="menu">
+      <template v-if="child.data" slot-scope="child">
+        <li>
+          <a href="#" @click.prevent="requestPlay(child.data.video)">Play</a>
+        </li>
+        <li>
+          <a href="#" @click.prevent="requestRemove(child.data.video)">Remove</a>
+        </li>
+      </template>
+    </vue-context>
     <div v-if="items.length === 0" class="queue__empty">
-      <svg xmlns="http://www.w3.org/2000/svg" width="46.47" height="46.47">
+      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 46.47 46.47">
         <path d="M46.222 41.889a2.998 2.998 0 0 1-1.562 3.943 2.997 2.997 0 0 1-3.944-1.562c-2.893-6.689-9.73-11.012-17.421-11.012-7.868 0-14.747 4.32-17.523 11.004a3.003 3.003 0 0 1-3.922 1.621 3.002 3.002 0 0 1-1.62-3.922c3.71-8.932 12.764-14.703 23.064-14.703 10.085.002 19.085 5.744 22.928 14.631zM2.445 6.559a6.202 6.202 0 1 1 12.399.001A6.202 6.202 0 0 1 2.445 6.56zm28.117 0a6.202 6.202 0 1 1 12.403.001 6.202 6.202 0 0 1-12.403-.001z" />
       </svg>
-      <p>Nothing in the queue</p>
+      <h3>Nothing in the queue</h3>
     </div>
   </aside>
 </template>
@@ -29,10 +35,11 @@
 <script>
   import { mapState } from 'vuex';
   import Draggable from 'vuedraggable';
+  import { VueContext } from 'vue-context';
 
   export default {
     name: 'PlayerQueue',
-    components: { Draggable },
+    components: { Draggable, VueContext },
     data() {
       return {
         items: [],
@@ -58,6 +65,35 @@
 
       // @Debugging
       this.$root.$on('debugQueueVideos', this.debugQueueVideos);
+
+      // @Debugging
+      // this.items.push({
+      //   id: 'sQUmD1jVCxM',
+      //   title: 'Edlan - Go Back Home (Ft. MVE & Neil)',
+      //   url: 'https://www.youtube.com/watch?v=sQUmD1jVCxM',
+      //   thumbnail: 'https://i.ytimg.com/vi/sQUmD1jVCxM/mqdefault.jpg',
+      // });
+
+      // this.items.push({
+      //   id: 'diliY4ERkLU',
+      //   title: 'Hybrid Minds - Kismet ft. Riya',
+      //   url: 'https://www.youtube.com/watch?v=diliY4ERkLU',
+      //   thumbnail: 'https://i.ytimg.com/vi/diliY4ERkLU/mqdefault.jpg',
+      // });
+
+      // this.items.push({
+      //   id: '-fCtvurGDD8',
+      //   title: 'Birdy - Wings (Nu:Logic Remix)',
+      //   url: 'https://www.youtube.com/watch?v=-fCtvurGDD8',
+      //   thumbnail: 'https://i.ytimg.com/vi/-fCtvurGDD8/mqdefault.jpg',
+      // });
+
+      // this.items.push({
+      //   id: 'oySqE3z99AE',
+      //   title: 'Hybrid Minds - Inside (ft. Emily Jones)',
+      //   url: 'https://www.youtube.com/watch?v=oySqE3z99AE',
+      //   thumbnail: 'https://i.ytimg.com/vi/oySqE3z99AE/mqdefault.jpg',
+      // });
     },
     methods: {
       /**
@@ -65,7 +101,6 @@
        * NOTE: This does not tell the server
        */
       add(video) {
-        console.log('add to queue', video);
         this.items.push(video);
       },
 
@@ -102,47 +137,90 @@
       stopDrag() {
         const classes = this.$refs.draggable.$el.classList;
         classes.remove('dragging');
+        setTimeout(() => classes.remove('no-sort-animation'), 150);
+      },
 
+      /**
+       * Event fired when queue order changed
+       */
+      change({ moved }) {
+        // find the element which replaced the dragged one
+        const elements = this.$refs.draggable.$el.querySelectorAll('.queue-item-container');
+        const oldElement = elements[moved.oldIndex].firstChild;
+        const newElement = elements[moved.newIndex].firstChild;
+
+        /**
+         * NOTE: When we drag an item and move it, the hover state will be applied to the
+         * index of the item where we initially started dragging from. That's ugly, so this
+         * little hack will forcefully chance the hover states using CSS.
+         */
+        const undoHackToFixBrowserBug = () => {
+          oldElement.classList.remove('no-hover-animations');
+          newElement.classList.remove('force-hover-animations');
+          document.removeEventListener('mousemove', undoHackToFixBrowserBug, false);
+        };
+
+        oldElement.classList.add('no-hover-animations');
+        newElement.classList.add('force-hover-animations');
+        document.addEventListener('mousemove', undoHackToFixBrowserBug, false);
+
+        // send updated order to the server!
         const order = this.items.map(item => item.id);
         this.$root.$emit('send', { type: 'queue--order', order });
-
-        setTimeout(() => classes.remove('no-sort-animation'), 150);
       },
 
       /**
        * Tell the server we want to queue a video
        * NOTE: We expect the server to send us 'server__queue--add'
        */
-      requestAdd(videoUrl) {
-        // ensure the url is valid
-        const segments = videoUrl.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/);
-        if (segments === null || typeof segments[2] === 'undefined' || segments[2].length === 0) {
-          console.error('invalid youtube url!');
-          // TODO: client errors
-          return;
-        }
+      requestAdd(video) {
+        if (typeof video === 'string') {
+          // ensure the url is valid
+          const segments = video.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/);
+          if (segments === null || typeof segments[2] === 'undefined' || segments[2].length === 0) {
+            console.error('invalid youtube url!');
+            // @TODO: client errors
+            return;
+          }
 
-        fetch(`https://noembed.com/embed?url=${videoUrl}`, { method: 'get' })
-          .then(res => res.json())
-          .then((data) => {
-            const { title, url } = data;
-            this.$root.$emit('send', {
-              type: 'queue--add',
-              id: segments[2],
-              thumbnail: data.thumbnail_url,
-              title,
-              url,
-            });
-          })
-          .catch(err => console.error(err));
+          fetch(`https://noembed.com/embed?url=${video}`, { method: 'get' })
+            .then(res => res.json())
+            .then((data) => {
+              const { title, url } = data;
+              this.$root.$emit('send', {
+                type: 'queue--add',
+                id: segments[2],
+                thumbnail: data.thumbnail_url.replace('hqdefault', 'mqdefault'),
+                title,
+                url,
+              });
+            })
+            .catch(err => console.error(err));
+        } else if (typeof video === 'object') {
+          const { id, title, url } = video;
+          this.$root.$emit('send', {
+            type: 'queue--add',
+            id,
+            thumbnail: video.thumbnail.url,
+            title,
+            url,
+          });
+        }
       },
 
       /**
        * Tell the server we want to remove a video from the queue
        * NOTE: We expect the server to send us 'server__queue--remove'
        */
-      requestRemove(video) {
-        this.$root.$emit('send', { type: 'queue--remove', id: video.id });
+      requestRemove({ id }) {
+        this.$root.$emit('send', { type: 'queue--remove', id });
+      },
+
+      /**
+       * Tell the server we want to play a video in the queue now
+       */
+      requestPlay({ id }) {
+        this.$root.$emit('send', { type: 'queue--play', id });
       },
 
       // @Debugging
@@ -152,7 +230,7 @@
           id: 'oySqE3z99AE',
           title: 'Hybrid Minds - Inside (ft. Emily Jones)',
           url: 'https://www.youtube.com/watch?v=oySqE3z99AE',
-          thumbnail: 'https://i.ytimg.com/vi/oySqE3z99AE/hqdefault.jpg',
+          thumbnail: 'https://i.ytimg.com/vi/oySqE3z99AE/mqdefault.jpg',
         });
 
         this.$root.$emit('send', {
@@ -160,7 +238,7 @@
           id: 'JSxCc2e3BEE',
           title: 'Hybrid Minds - Liquicity Winterfestival 2017',
           url: 'https://www.youtube.com/watch?v=JSxCc2e3BEE',
-          thumbnail: 'https://i.ytimg.com/vi/JSxCc2e3BEE/hqdefault.jpg',
+          thumbnail: 'https://i.ytimg.com/vi/JSxCc2e3BEE/mqdefault.jpg',
         });
 
         this.$root.$emit('send', {
@@ -168,7 +246,7 @@
           id: '-fCtvurGDD8',
           title: 'Birdy - Wings (Nu:Logic Remix)',
           url: 'https://www.youtube.com/watch?v=-fCtvurGDD8',
-          thumbnail: 'https://i.ytimg.com/vi/-fCtvurGDD8/hqdefault.jpg',
+          thumbnail: 'https://i.ytimg.com/vi/-fCtvurGDD8/mqdefault.jpg',
         });
       },
     },
@@ -191,24 +269,48 @@
     .queue-item {
       background-color: rgba(0, 0, 0, 0.2);
 
-      > * {
-        display: none;
-      }
+      > * { opacity: 0; }
     }
   }
 
   .queue {
     position: relative;
-    grid-column: 3;
+    font-size: 15px;
+    font-weight: 700;
+    color: #ffffff;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+      border-radius: 12px;
+      background-color: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      width: 8px;
+      min-height: 32px;
+      border-radius: 12px;
+      background-color: rgba(255, 255, 255, 0.25);
+    }
+  }
+
+  .queue__title {
+    font-size: inherit;
+    text-transform: uppercase;
+    margin-top: 0;
+    margin-bottom: 10px;
   }
 
   .queue__container {
     position: absolute;
-    top: 0;
+    top: 25px;
     left: 0;
     width: 100%;
-    height: 100%;
-    overflow-y: auto;
+    height: calc(100% - 25px);
+    overflow-y: auto; /* fallback for firefox */
+    overflow-y: overlay;
 
     // only use animations if the sort was done by the server (another user re-ordered the queue)
     &:not(.no-sort-animation) {
@@ -219,13 +321,12 @@
 
     // show hover FX and remove button if we are not dragging the item
     &:not(.dragging):not(.sortable-chosen) {
-      .queue-item {
+      .queue-item:not(.no-hover-animations) {
+        &.force-hover-animations,
         &:hover {
-          box-shadow: 0 4px 4px 0 rgba(0, 0, 0, 0.20);
-
-          .queue-item__remove {
-            opacity: 1;
-            visibility: visible;
+          .queue-item__thumbnail { opacity: 1; }
+          .queue-item__content {
+            > *, &::before { opacity: 1; }
           }
         }
       }
@@ -233,62 +334,67 @@
   }
 
   .queue-item-container {
-    padding: 5px 0;
     user-select: none;
+
+    &:not(:last-child) {
+      margin-bottom: 10px;
+    }
   }
 
   .queue-item {
     position: relative;
-    font-size: 15px;
-    padding: 10px;
-    height: 100px;
-    background-color: rgba(255, 255, 255, 0.10);
+    line-height: 0;
+    border-radius: 2px;
     @include transition(all);
     cursor: move;
     cursor: -webkit-grab;
     cursor: -moz-grab;
     cursor: grab;
+  }
 
-    .queue-item__thumbnail-container {
-      float: left;
-      width: 153px;
-      height: 80px;
-      overflow: hidden;
-      padding-right: 10px;
-    }
+  .queue-item__thumbnail {
+    max-width: 100%;
+    height: auto;
+    border-radius: inherit;
+    opacity: 0.75;
+    transition: opacity 150ms ease-in-out;
+  }
 
-    .queue-item__thumbnail {
-      width: inherit;
-      height: inherit;
-      object-fit: cover;
-    }
+  .queue-item__content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    padding: 15px;
+    display: flex;
+    align-items: flex-end;
+    line-height: 1.15;
 
-    // .queue-item__actions {
-    //   opacity: 0;
-    //   visibility: hidden;
-    //   @include transition(all);
-    // }
-
-    .queue-item__remove {
+    &::before {
+      content: "";
       position: absolute;
-      top: 10px;
-      right: 10px;
-      cursor: pointer;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: linear-gradient(-180deg, rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, 0.60) 80%);
       opacity: 0;
-      visibility: hidden;
-      @include transition(all);
-
-      &:hover {
-        svg {
-          stroke: #ffffff;
-        }
-      }
-
-      svg {
-        stroke: rgba(255, 255, 255, 0.35);
-        @include transition(stroke);
-      }
+      transition: opacity 150ms ease-in-out;
     }
+
+    > * {
+      position: relative;
+      z-index: 1;
+      opacity: 0;
+      transition: opacity 150ms ease-in-out;
+    }
+  }
+
+  .queue-item__title {
+    font-size: 14px;
+    text-shadow: 1px 2px 0 rgba(0, 0, 0, 0.35);
+    margin: 0;
   }
 
   .queue__empty {
@@ -302,7 +408,11 @@
 
     svg {
       fill: rgba(255, 255, 255, 0.5);
-      margin-bottom: 25px;
+      margin-bottom: 10px;
+    }
+
+    h3 {
+      font-size: 16px;
     }
   }
 </style>

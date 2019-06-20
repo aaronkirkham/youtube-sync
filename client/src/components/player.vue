@@ -16,7 +16,7 @@
           </tr>
           <tr>
             <td>Ping:</td>
-            <td>{{ ping }}</td>
+            <td>{{ ping }} ms</td>
           </tr>
           <tr>
             <td>Is Host:</td>
@@ -29,6 +29,8 @@
         </table>
       </div>
     </div>
+    <div v-if="showAutoplayNotices && autoplayCaps === 2" class="player__autoplay-caps">Your browser has strict autoplay settings. The audio has been muted.</div>
+    <div v-else-if="showAutoplayNotices && autoplayCaps === 0" class="player__autoplay-caps player__autoplay-caps--forbidden">Your browser has strict autoplay settings. The video has been paused.</div>
   </main>
 </template>
 
@@ -67,6 +69,7 @@
         videoToPlayWhenReady: null,
         delta: 0,
         autoplayCaps: AutoplayCapabilities.Forbidden,
+        showAutoplayNotices: false,
       };
     },
     computed: {
@@ -146,6 +149,24 @@
           return;
         }
 
+        // try again with the autoplay capabilities, the user may have
+        // interacted with the page or changed settings
+        if (this.autoplayCaps !== AutoplayCapabilities.Allowed) {
+          getAutoplayCapabilities((caps) => {
+            this.autoplayCaps = caps;
+            this.showAutoplayNotices = (caps !== AutoplayCapabilities.Allowed);
+
+            if (this.showAutoplayNotices) {
+              setTimeout(() => { this.showAutoplayNotices = false; }, 3500);
+            }
+          });
+        }
+
+        // if there is already a video playing, wait for the target from the host
+        if (!this.isHost && this.currentState === PlayerState.PLAYING) {
+          this.flags |= PlayerFlags.WaitForTargetState;
+        }
+
         let time = video.time ? video.time : 0;
 
         // if the video is playing, calculate the network player time
@@ -221,9 +242,6 @@
         console.log('Player is ready! AutoplayCapabilities:', this.autoplayCaps);
         if (this.autoplayCaps === AutoplayCapabilities.OnlyWhenMuted) {
           this.player.mute();
-
-          // @TODO: Some notification to the user that they must manually unmute the video,
-          //        or update their browser autoplay permissions for this domain!
         }
 
         // do we have a video waiting to play?
@@ -339,7 +357,11 @@
         }
 
         // set the set by server flag, so we ignore the state change events later
-        this.flags |= PlayerFlags.WaitForTargetState;
+        if (this.currentState !== state) {
+          this.flags |= PlayerFlags.WaitForTargetState;
+        } else if (this.flags & PlayerFlags.WaitForTargetState) {
+          this.flags &= ~PlayerFlags.WaitForTargetState;
+        }
 
         console.log(`UpdateState - TargetState: ${this.stateToString(state)}, Time: ${time}`);
 
@@ -422,7 +444,7 @@
         if (this.delta > 0.25) return 'orange';
         return 'inherit';
       },
- 
+
       stateToString(state = this.currentState) {
         switch (state) {
         case PlayerState.UNSTARTED: return 'UNSTARTED';
@@ -440,7 +462,7 @@
 
 <style lang="scss">
   .player {
-    grid-column: 1 / 3;
+    position: relative;
 
     // 16:9 player aspect ratio
     .player__iframe-container {
@@ -448,7 +470,6 @@
       padding-bottom: 56.25%;
       height: 0;
       overflow: hidden;
-      margin-bottom: 20px;
       border-radius: 2px;
 
       iframe {
@@ -457,6 +478,44 @@
         left: 0;
         width: 100%;
         height: 100%;
+      }
+    }
+
+    .player__autoplay-caps {
+      position: absolute;
+      bottom: 61px;
+      left: -5px;
+      font-size: 14px;
+      font-weight: 400;
+      color: #000000;
+      padding: 10px 15px 9px;
+      background-color: #eca832;
+      box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.25);
+      border-radius: 2px;
+      user-select: none;
+      pointer-events: none;
+
+      &::before {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 72px;
+        width: 0;
+        height: 0;
+        border: solid transparent;
+        border-color: rgba(136, 183, 213, 0);
+        border-top-color: #eca832;
+        border-width: 7px;
+        pointer-events: none;
+      }
+
+      &--forbidden {
+        background-color: #d25a3c;
+
+        &::before {
+          left: 34px;
+          border-top-color: #d25a3c;
+        }
       }
     }
   }
