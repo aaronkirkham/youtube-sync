@@ -7,21 +7,26 @@ Vue.use(VueMeta);
 
 // click-outside directive
 /* eslint-disable no-param-reassign */
+/* eslint-disable no-underscore-dangle */
 Vue.directive('click-outside', {
   bind(el, binding) {
-    el.$clickOutsideHandler = (event) => {
+    if (typeof binding.value !== 'function') {
+      console.error('v-click-outside handler must be a function!');
+      return;
+    }
+
+    el.__vueClickOutsideHandler__ = (event) => {
       const { bubble } = binding.modifiers;
       if (bubble || (!el.contains(event.target) && el !== event.target)) {
         binding.value(event);
       }
     };
 
-    el.addEventListener('click', el.$clickOutsideHandler);
-    document.body.addEventListener('click', el.$clickOutsideHandler);
+    document.body.addEventListener('mousedown', el.__vueClickOutsideHandler__);
   },
   unbind(el) {
-    document.body.removeEventListener('click', el.$clickOutsideHandler);
-    el.$clickOutsideHandler = null;
+    document.body.removeEventListener('mousedown', el.__vueClickOutsideHandler__);
+    el.__vueClickOutsideHandler__ = null;
   },
 });
 

@@ -2,36 +2,17 @@
   <div id="app" :class="{ 'connecting': !isOnline }">
     <header class="primary-header" role="banner">
       <h1 class="logo">
-        <img :src="logo" class="logo-icon">
+        <img :src="logo" width="50" height="50" class="logo-icon">
         YouTube Sync
       </h1>
       <SearchBox />
     </header>
     <YoutubePlayer />
     <PlayerQueue />
-    <div v-if="!isOnline" class="spinner">
-      <!-- By Sam Herbert (@sherb), for everyone. More @ http://goo.gl/7AJzbL -->
-      <svg width="84" height="84" viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="a" x1="8.042%" y1="0%" x2="65.682%" y2="23.865%">
-            <stop stop-color="#fff" stop-opacity="0" offset="0%" />
-            <stop stop-color="#fff" stop-opacity=".631" offset="63.146%" />
-            <stop stop-color="#fff" offset="100%" />
-          </linearGradient>
-        </defs>
-        <g fill="none" fill-rule="evenodd">
-          <g transform="translate(1 1)">
-            <path id="Oval-2" d="M36 18c0-9.94-8.06-18-18-18" stroke="url(#a)" stroke-width="2">
-              <animateTransform attributeName="transform" type="rotate" from="0 18 18" to="360 18 18" dur="0.9s" repeatCount="indefinite" />
-            </path>
-            <circle fill="#fff" cx="36" cy="18" r="1">
-              <animateTransform attributeName="transform" type="rotate" from="0 18 18" to="360 18 18" dur="0.9s" repeatCount="indefinite" />
-            </circle>
-          </g>
-        </g>
-      </svg>
-      <h2 class="spinner__status">{{ connectStatus }}</h2>
-      <h3 v-if="connectError" class="spinner__error">{{ connectError }}</h3>
+    <div v-if="!isOnline" class="loading">
+      <img :src="logo" width="64" height="64">
+      <h2 class="loading__status">{{ connectStatus }}</h2>
+      <h3 v-if="connectError" class="loading__error">{{ connectError }}</h3>
     </div>
   </div>
 </template>
@@ -112,6 +93,7 @@
 
 <style lang="scss">
   @import '~normalize.css/normalize.css';
+  @import 'mixins.scss';
 
   * {
     box-sizing: border-box;
@@ -141,9 +123,7 @@
   #app {
     display: grid;
     grid-gap: 25px;
-    // grid-template-columns: 79.478% auto;
     grid-template-columns: 83.975% auto;
-    // max-width: 1340px;
     max-width: 1920px;
     margin: 0 auto;
 
@@ -160,7 +140,6 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    // margin: 7px 0 60px;
     margin: 7px 0 25px;
 
     .logo {
@@ -170,12 +149,12 @@
     }
 
     .logo-icon {
-      margin-right: 20px;
+      margin-right: 14px;
       pointer-events: none;
     }
   }
 
-  .spinner {
+  .loading {
     position: absolute;
     top: 0;
     left: 0;
@@ -188,13 +167,44 @@
     z-index: 10001;
   }
 
-  .spinner__status {
+  .loading__status {
     margin-bottom: 0;
   }
 
-  .spinner__error {
+  .loading__error {
     color: red;
     margin-top: 10px;
     margin-bottom: 0;
+  }
+
+  @keyframes rotate {
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes dash {
+    0% {
+      stroke-dasharray: 1, 150;
+      stroke-dashoffset: 0;
+    }
+    50% {
+      stroke-dasharray: 90, 150;
+      stroke-dashoffset: -35;
+    }
+    100% {
+      stroke-dasharray: 90, 150;
+      stroke-dashoffset: -124;
+    }
+  }
+
+  .spinner {
+    animation: rotate 2s linear infinite;
+
+    & .path {
+      stroke: #31373d;
+      stroke-linecap: round;
+      animation: dash 1.5s ease-in-out infinite;
+    }
   }
 </style>

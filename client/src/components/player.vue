@@ -487,7 +487,7 @@
       left: -5px;
       font-size: 14px;
       font-weight: 400;
-      color: #000000;
+      color: #282828;
       padding: 10px 15px 9px;
       background-color: #eca832;
       box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.25);
@@ -527,7 +527,7 @@
     z-index: 99;
     user-select: none;
     pointer-events: none;
-    background-color: #000000;
+    background-color: #282828;
     padding: 5px;
     opacity: 0.75;
 

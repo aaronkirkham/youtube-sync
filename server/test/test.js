@@ -11,17 +11,17 @@ const io = require('socket.io-client');
 const SOCKET_ADDR = 'http://localhost:8888';
 const SOCKET_OPTS = { forceNew: true };
 
-describe('Server', function() {
+describe('Server', () => {
   let server = null;
   let host = null;
 
-  before(function(done) {
+  before((done) => {
     server = new Server();
     host = new Client(io(SOCKET_ADDR, SOCKET_OPTS));
     host.socket.on('connect', done);
   });
 
-  after(function(done) {
+  after((done) => {
     host.socket.disconnect();
     server.io.close(done);
   });
@@ -29,17 +29,17 @@ describe('Server', function() {
   // unsubscribe to all event listeners after each test
   afterEach(() => host.offAll());
 
-  it('is listening', function() {
+  it('is listening', () => {
     expect(server.io).to.not.be.undefined;
   });
 
-  it('created a room and made us host', function() {
+  it('created a room and made us host', () => {
     expect(server.clients).to.have.property('size', 1);
     expect(server.rooms).to.have.lengthOf(1);
     expect(server.rooms[0].host.socket.id).to.equal(host.socket.id);
   });
 
-  it('queued a video and start playing', function() {
+  it('queued a video and start playing', () => {
     const video = {
       id: '12345',
       title: 'testing',
@@ -57,7 +57,7 @@ describe('Server', function() {
     expect(room.current).to.have.property('thumbnail', video.thumbnail);
   });
 
-  it('added multiple videos to the queue', function() {
+  it('added multiple videos to the queue', () => {
     const first = { id: '1', title: 'First Video', url: '', thumbnail: '' };
     const second = { id: '2', title: 'Second Video', url: '', thumbnail: '' };
     const third = { id: '3', title: 'Third Video', url: '', thumbnail: '' };
@@ -73,7 +73,7 @@ describe('Server', function() {
     expect(room.queue[2]).to.have.property('title', third.title);
   });
 
-  it('reversed video queue order', function() {
+  it('reversed video queue order', () => {
     const room = server.rooms[0];
 
     const items = room.queue.map(video => video.id);
@@ -88,7 +88,7 @@ describe('Server', function() {
     expect(room.queue[2]).to.have.property('id', firstId);
   });
 
-  it('skipped the current playing video and queued the next one', function() {
+  it('skipped the current playing video and queued the next one', () => {
     const room = server.rooms[0];
     const queueSize = room.queue.length;
     const nextVideoId = room.queue[0].id;
@@ -99,7 +99,7 @@ describe('Server', function() {
     expect(room.queue).to.have.lengthOf((queueSize - 1));
   });
 
-  it('removed all videos from the queue', function() {
+  it('removed all videos from the queue', () => {
     const room = server.rooms[0];
 
     let next = room.queue[Symbol.iterator]().next().value;
@@ -111,10 +111,10 @@ describe('Server', function() {
     expect(room.queue).to.be.empty;
   });
 
-  describe('Client joins same room', function() {
+  describe('Client joins same room', () => {
     let client2 = null;
 
-    before(function(done) {
+    before((done) => {
       client2 = new Client(io(SOCKET_ADDR, {
         ...SOCKET_OPTS,
         extraHeaders: {
@@ -135,12 +135,12 @@ describe('Server', function() {
     after(() => client2.socket.disconnect());
     afterEach(() => client2.offAll());
 
-    it('was added to the rooms client list', function() {
+    it('was added to the rooms client list', () => {
       expect(server.clients).to.have.property('size', 2);
       expect(server.rooms[0].clients).to.have.property('size', 2);
     });
 
-    it('queued a video for both clients', function(done) {
+    it('queued a video for both clients', (done) => {
       const video = {
         id: '9999',
         title: 'testing-2',
@@ -149,7 +149,7 @@ describe('Server', function() {
       };
 
       let callback_counter = 0;
-      const callback = function(data) {
+      const callback = (data) => {
         if (data.type === 'queue--add') {
           expect(data).to.have.property('videoId', video.id);
           if (++callback_counter === 2) {

@@ -1,13 +1,20 @@
 <template>
-  <div v-click-outside="close" class="search">
-    <input v-model="terms" type="search" placeholder="Search YouTube or Paste URL" @click="click" @keyup.enter="search">
-    <p v-if="error" style="color:red;">{{ error }}</p>
-
-    <div v-if="showResults" class="search__results">
-      <div class="search__results-scroll-container">
+  <div v-click-outside="closeResults" class="search">
+    <label :class="{ 'searching': searching }" class="search-label">
+      <input v-model="terms" type="search" placeholder="Search YouTube or Paste URL" @focus="openResults" @keyup.enter="search">
+      <svg class="spinner" width="20" height="20" viewBox="0 0 50 50">
+        <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5" />
+      </svg>
+    </label>
+    <div v-if="showResults || error" :class="{ 'is-searching': searching }" class="search__results">
+      <p v-if="error" class="search-error">{{ error }}</p>
+      <div v-else ref="container" class="search__results-scroll-container">
         <a v-for="(result, idx) in results" :key="idx" class="search-result" :href="result.url" target="_blank" @click.prevent="queueResult(result)">
           <img :src="result.thumbnail.url" :alt="result.title" :width="result.thumbnail.width" :height="result.thumbnail.height" class="search-result__thumbnail">
-          <h4 class="search-result__title">{{ result.title }}</h4>
+          <div class="search-result__content">
+            <h4 class="search-result__title">{{ result.title }}</h4>
+            <h5 class="search-result__channel">{{ result.channel }}</h5>
+          </div>
         </a>
       </div>
     </div>
@@ -22,9 +29,12 @@
         terms: '',
         showResults: false,
         results: [],
+        resultsScroll: 0,
+        searching: false,
+        lastSearchTime: Date.now(),
         error: null,
         key: 'AIzaSyAi4w58SdvfLfxjuznzWUNF8R-_wVNul6M',
-        maxResults: 25,
+        nextPageToken: null,
         decoder: null,
       };
     },
@@ -34,6 +44,7 @@
         if (value.length === 0) {
           this.error = null;
           this.showResults = false;
+          this.resultsScroll = 0;
           this.results = [];
         }
       },
@@ -43,9 +54,10 @@
        * Event fired once the user clicks in the search box.
        * Now we show the latest stored results back to the user
        */
-      click() {
-        if (this.results.length !== 0) {
+      openResults() {
+        if (!this.showResults && this.results.length !== 0) {
           this.showResults = true;
+          this.$nextTick(() => { this.$refs.container.scrollTop = this.resultsScroll; });
         }
       },
 
@@ -53,20 +65,22 @@
        * Event fired once the user clicks outside the search box.
        * Hide the search results panel
        */
-      close() {
-        this.showResults = false;
+      closeResults() {
+        if (this.showResults) {
+          this.resultsScroll = this.$refs.container.scrollTop;
+          this.showResults = false;
+        }
       },
 
       /**
        * Event fired once the user hits enter in the search box.
        */
       search() {
+        const now = Date.now();
         this.error = null;
 
-        // if the terms are empty, reset the results list
-        if (this.terms.length === 0) {
-          this.showResults = false;
-          this.results = [];
+        // limit spam searching
+        if (this.searching || (now - this.lastSearchTime) < 1000) {
           return;
         }
 
@@ -86,31 +100,41 @@
           return;
         }
 
+        const handleApiResult = response => new Promise((resolve, reject) => {
+          if (response.error) return reject(new Error(response.error.message));
+          if (response.items.length === 0) return reject(new Error('No Results'));
+          return resolve(response);
+        });
+
+        //
+        this.searching = true;
+        this.lastSearchTime = now;
+
         // search!
-        fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=${this.maxResults}&q=${this.terms}&key=${this.key}`)
+        fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=50&q=${this.terms}&key=${this.key}`)
           .then(res => res.json())
+          .then(res => handleApiResult(res))
           .then((res) => {
-            console.log(res);
-
-            if (res.error) {
-              this.error = res.error.message;
-              this.showResults = false;
-              this.results = [];
-              return;
-            }
-
-            this.showResults = true;
             this.results = res.items.map(item => ({
               id: item.id.videoId,
               url: `https://www.youtube.com/watch?v=${item.id.videoId}`,
               title: this.decodeCharacters(item.snippet.title),
               thumbnail: item.snippet.thumbnails.medium,
+              channel: item.snippet.channelTitle,
             }));
+
+            this.searching = false;
+            this.showResults = true;
+            this.resultsScroll = 0;
+            this.nextPageToken = res.nextPageToken;
+
+            this.$nextTick(() => { this.$refs.container.scrollTop = 0; });
           })
           .catch((err) => {
             this.error = err.message;
-            this.showResults = false;
             this.results = [];
+            this.searching = false;
+            this.showResults = true;
           });
       },
 
@@ -131,19 +155,28 @@
        */
       queueResult(result) {
         this.$root.$emit('queue-video', result);
-
-        // hide the search results window
-        this.showResults = false;
+        this.closeResults();
       },
     },
   };
 </script>
 
 <style lang="scss" scoped>
+  @import '../mixins.scss';
+
   .search {
+    position: relative;
     width: 100%;
     max-width: 500px;
+  }
 
+  .search-error {
+    color: #de2925;
+    padding: 0 5px;
+    text-align: center;
+  }
+
+  .search-label {
     input {
       position: relative;
       width: 100%;
@@ -163,30 +196,78 @@
                     inset 0 0 0 2px rgba(0, 123, 255, 0.5);
       }
     }
+
+    .spinner {
+      display: none;
+      position: absolute;
+      top: calc(50% - 10px);
+      left: 15px;
+      width: 20px;
+      height: 20px;
+
+      .path {
+        stroke: #929292;
+      }
+    }
+
+    &.searching {
+      input {
+        background-image: none;
+      }
+
+      .spinner {
+        display: block;
+      }
+    }
+  }
+
+  .search__loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    line-height: 0;
+    transform: translate(-50%, -50%);
+    user-select: none;
+    pointer-events: none;
   }
 
   .search__results {
     position: absolute;
-    top: calc(100% + 40px);
+    top: calc(100% + 17px);
     left: 0;
     width: 100%;
-    background-color: white;
-    color: #000000;
-    z-index: 100;
+    min-height: 70px;
     padding: 10px 0;
+    background-color: #ffffff;
+    border-radius: 2px;
+    box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.50);
+    z-index: 100;
 
     &::before {
       content: "";
       position: absolute;
       bottom: 100%;
-      right: 240px;
+      right: 247px;
       width: 0;
       height: 0;
       border: solid transparent;
       border-color: rgba(136, 183, 213, 0);
       border-bottom-color: #ffffff;
-      border-width: 10px;
+      border-width: 7px;
       pointer-events: none;
+    }
+
+    &.is-searching {
+      user-select: none;
+
+      .search__results-scroll-container {
+        overflow-y: hidden;
+      }
+
+      .search-result {
+        pointer-events: none;
+        opacity: 0.5;
+      }
     }
   }
 
@@ -198,14 +279,52 @@
   }
 
   .search-result {
-    padding: 0 10px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 5px 10px;
+    text-decoration: none;
+    @include transition(all);
 
-    .search-result__thumbnail {
-      line-height: 0;
+    &:hover {
+      background-color: #ebebeb;
     }
 
-    .search-result__title {
-      margin: 0;
+    &:first-child {
+      padding-top: 0;
     }
+
+    &:last-child {
+      padding-bottom: 0;
+    }
+  }
+
+  .search-result__thumbnail {
+    max-width: 130px;
+    height: auto;
+    line-height: 0;
+    border-radius: 2px;
+  }
+
+  .search-result__content {
+    display: flex;
+    flex-direction: column;
+    margin-left: 15px;
+    word-break: break-word;
+  }
+
+  .search-result__title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #282828;
+    margin: 0;
+  }
+
+  .search-result__channel {
+    font-size: 14px;
+    font-weight: 400;
+    color: #a0a0a0;
+    margin: 3px 0 0 0;
   }
 </style>
