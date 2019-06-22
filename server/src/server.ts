@@ -11,13 +11,25 @@ export class Server {
   private readonly clients: Set<Client> = new Set();
   private rooms: Room[] = [];
 
-  constructor(port: number = 8888) {
+  constructor() {
+    let port = (parseInt(process.env.PORT, 10) || null);
+    if (!port) {
+      port = this.getFromConfig('port', 8888);
+    }
+
+    const pingInterval = this.getFromConfig('pingInterval', 2500);
+    const webUrl = this.getFromConfig('webUrl', null);
+    const validUrl = this.isValidUrl(webUrl);
+
     this.app = express();
     this.httpServ = http.createServer(this.app);
-    this.io = socketIo(this.httpServ, { pingInterval: 2500 });
+    this.io = socketIo(this.httpServ, { pingInterval });
 
-    // anyone who visits this server should go back to the main app domain
-    this.app.get('/', (req: any, res: any) => res.redirect('http://kirkh.am/youtube/'));
+    // handle connections to the server
+    this.app.get('/', (req: any, res: any) => {
+      if (!validUrl) return res.status(500).send();
+      return res.redirect(webUrl);
+    });
 
     // register client handlers on new connection
     this.io.on('connection', (socket) => {
@@ -46,7 +58,7 @@ export class Server {
       socket.on('disconnect', () => this.leave(client));
     });
 
-    this.httpServ.listen(port, () => console.log(`Server is listening on port ${port}...`));
+    this.httpServ.listen(port, () => console.log('Server is listening on port', port));
   }
 
   /**
@@ -117,5 +129,31 @@ export class Server {
     const lastSlashPos = referer.lastIndexOf('/');
     const roomId = referer.substr(lastSlashPos + 1, referer.length);
     return roomId;
+  }
+
+  /**
+   * Get a value from the config file
+   * @param key Key to get the value of
+   * @param def Default value incase the key doesn't exist
+   */
+  getFromConfig(key: string, def: any = null): any {
+    const config = require('../config.json');
+
+    if (!config) return def;
+    if (!config.hasOwnProperty(key)) return def;
+    return config[key];
+  }
+
+  /**
+   * Test if a given URL is a valid address
+   * @param url URL to test
+   */
+  isValidUrl(url: string): boolean {
+    try {
+      new URL(url);
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
 }

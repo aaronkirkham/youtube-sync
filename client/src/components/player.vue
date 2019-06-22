@@ -67,6 +67,7 @@
         currentVideo: null,
         currentState: PlayerState.UNSTARTED,
         videoToPlayWhenReady: null,
+        stateToSetWhenReady: null,
         delta: 0,
         autoplayCaps: AutoplayCapabilities.Forbidden,
         showAutoplayNotices: false,
@@ -249,6 +250,12 @@
           this.play(this.videoToPlayWhenReady);
           this.videoToPlayWhenReady = null;
         }
+
+        // update state if we need to
+        if (this.stateToSetWhenReady) {
+          this.updateState(this.stateToSetWhenReady);
+          this.stateToSetWhenReady = null;
+        }
       },
 
       /**
@@ -342,14 +349,9 @@
        */
       updateState({ state, time = 0 }) {
         if (!(this.flags & PlayerFlags.Ready)) {
-          console.error('UpdateState - player isn\'t ready yet!');
-
-          // @BUG: this can sometimes occur!
-          // a solution would be the data passed to this function, then once the youtube
-          // player is ready, invoke this function again with the stored data.
-
-          // I don't yet have a good reproduction, but something with loading the video
-          // when another client is updating state.
+          console.warn('UpdateState - Player isn\'t ready yet!');
+          this.stateToSetWhenReady = { state, time };
+          return;
         }
 
         if (this.currentVideo) {

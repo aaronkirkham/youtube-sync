@@ -65,35 +65,6 @@
 
       // @Debugging
       this.$root.$on('debugQueueVideos', this.debugQueueVideos);
-
-      // @Debugging
-      // this.items.push({
-      //   id: 'sQUmD1jVCxM',
-      //   title: 'Edlan - Go Back Home (Ft. MVE & Neil)',
-      //   url: 'https://www.youtube.com/watch?v=sQUmD1jVCxM',
-      //   thumbnail: 'https://i.ytimg.com/vi/sQUmD1jVCxM/mqdefault.jpg',
-      // });
-
-      // this.items.push({
-      //   id: 'diliY4ERkLU',
-      //   title: 'Hybrid Minds - Kismet ft. Riya',
-      //   url: 'https://www.youtube.com/watch?v=diliY4ERkLU',
-      //   thumbnail: 'https://i.ytimg.com/vi/diliY4ERkLU/mqdefault.jpg',
-      // });
-
-      // this.items.push({
-      //   id: '-fCtvurGDD8',
-      //   title: 'Birdy - Wings (Nu:Logic Remix)',
-      //   url: 'https://www.youtube.com/watch?v=-fCtvurGDD8',
-      //   thumbnail: 'https://i.ytimg.com/vi/-fCtvurGDD8/mqdefault.jpg',
-      // });
-
-      // this.items.push({
-      //   id: 'oySqE3z99AE',
-      //   title: 'Hybrid Minds - Inside (ft. Emily Jones)',
-      //   url: 'https://www.youtube.com/watch?v=oySqE3z99AE',
-      //   thumbnail: 'https://i.ytimg.com/vi/oySqE3z99AE/mqdefault.jpg',
-      // });
     },
     methods: {
       /**
@@ -178,8 +149,6 @@
           // ensure the url is valid
           const segments = video.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/);
           if (segments === null || typeof segments[2] === 'undefined' || segments[2].length === 0) {
-            console.error('invalid youtube url!');
-            // @TODO: client errors
             return;
           }
 

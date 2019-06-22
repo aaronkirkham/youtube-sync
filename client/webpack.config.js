@@ -5,6 +5,7 @@ const path = require('path');
 const VueLoaderPlugin = require('vue-loader/lib/plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const WebappWebpackPlugin = require('webapp-webpack-plugin');
+const config = require('./config.json');
 
 module.exports = (env, options) => {
   return {
@@ -47,7 +48,8 @@ module.exports = (env, options) => {
     plugins: [
       new webpack.EnvironmentPlugin({
         MODE: options.mode,
-        SOCKET_URL: options.SOCKET_URL,
+        SOCKETURL: config.serverUrl,
+        APIKEY: config.ytApiPublicKey,
       }),
       new VueLoaderPlugin(),
       new HtmlWebpackPlugin({
@@ -79,10 +81,8 @@ module.exports = (env, options) => {
       }),
       new WebappWebpackPlugin({
         logo: './src/assets/favicon.png',
-        publicPath: 'assets',
-        outputPath: 'assets',
-        prefix: '',
-        inject: () => { return true; },
+        outputPath: './assets',
+        inject: 'force',
         favicons: {
           appName: 'YouTube Sync',
           appDescription: 'Synchronized YouTube video playback between multiple clients. Create a room, invite your friends and create a playlist of videos to watch together.',

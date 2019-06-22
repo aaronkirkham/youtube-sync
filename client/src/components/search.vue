@@ -33,7 +33,6 @@
         searching: false,
         lastSearchTime: Date.now(),
         error: null,
-        key: 'AIzaSyAi4w58SdvfLfxjuznzWUNF8R-_wVNul6M',
         nextPageToken: null,
         decoder: null,
       };
@@ -111,7 +110,7 @@
         this.lastSearchTime = now;
 
         // search!
-        fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=50&q=${this.terms}&key=${this.key}`)
+        fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=50&q=${this.terms}&key=${process.env.APIKEY}`)
           .then(res => res.json())
           .then(res => handleApiResult(res))
           .then((res) => {

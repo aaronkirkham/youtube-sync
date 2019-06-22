@@ -40,19 +40,12 @@
       isOnline: state => state.online,
     }),
     mounted() {
-      let url = process.env.MODE === 'development' ? 'http://localhost:8888' : 'https://youtube-sync-server.herokuapp.com';
-
-      // if we passed a custom socket url to the build, use that instead.
-      if (typeof process.env.SOCKET_URL !== 'undefined') {
-        url = process.env.SOCKET_URL;
-      }
-
       // figure out the root path
       // NOTE: if the client is in a subdirectory, we need to push to the correct relative path later.
       const { pathname } = document.location;
       this.rootPath = pathname.substr(0, pathname.lastIndexOf('/') + 1);
 
-      this.socket = io(url); // { reconnection: false, query: `timestamp=${Date.now()}` }
+      this.socket = io(process.env.MODE === 'development' ? 'http://localhost:8888' : process.env.SOCKETURL);
       this.socket.on('connect', () => this.$store.commit('setOnline', true));
 
       // update connect status messages
@@ -128,7 +121,7 @@
     margin: 0 auto;
 
     &.connecting {
-      > *:not(.spinner) {
+      > *:not(.loading) {
         opacity: 0.4;
       }
     }
