@@ -5,10 +5,10 @@
         <img :src="logo" width="50" height="50" class="logo-icon">
         YouTube Sync
       </h1>
-      <SearchBox />
+      <SearchBox ref="search" />
     </header>
-    <YoutubePlayer />
-    <PlayerQueue />
+    <YoutubePlayer ref="player" />
+    <PlayerQueue ref="queue" />
     <div v-if="!isOnline" class="loading">
       <img :src="logo" width="64" height="64">
       <h2 class="loading__status">{{ connectStatus }}</h2>

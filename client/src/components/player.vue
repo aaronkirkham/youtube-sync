@@ -2,6 +2,10 @@
   <main id="player" class="player">
     <div class="player__iframe-container">
       <div id="player__iframe" />
+      <div v-if="error" class="player__error">
+        <span>{{ error }}</span>
+        <span v-if="showNextVideoStr">The next video will begin shortly...</span>
+      </div>
       <div v-if="showDebugView" id="player__debug">
         <table class="debug-info">
           <tr>
@@ -71,6 +75,8 @@
         delta: 0,
         autoplayCaps: AutoplayCapabilities.Forbidden,
         showAutoplayNotices: false,
+        error: null,
+        showNextVideoStr: false,
       };
     },
     computed: {
@@ -175,6 +181,7 @@
           time = this.calcNetworkPlayerTime(video.time, true);
         }
 
+        this.error = null;
         this.currentVideo = video;
         this.currentState = PlayerState.UNSTARTED;
 
@@ -200,6 +207,7 @@
         const recreatePlayer = (this.flags & PlayerFlags.Ready);
 
         // reset
+        this.error = null;
         this.flags = 0;
         this.currentVideo = null;
         this.currentState = PlayerState.UNSTARTED;
@@ -230,6 +238,7 @@
             onReady: this.onPlayerReady,
             onStateChange: this.onPlayerStateChange,
             onPlaybackRateChange: this.onPlayerPlaybackRateChange,
+            onError: this.onPlayerError,
           },
         });
       },
@@ -337,11 +346,33 @@
       /**
        * YouTube Player playback rate changed
        */
-      onPlayerPlaybackRateChange(event) {
+      onPlayerPlaybackRateChange({ data }) {
         this.$root.$emit('send', {
           type: 'video--playbackrate',
-          rate: event.data,
+          rate: data,
         });
+      },
+
+      /**
+       * YouTube Player error
+       */
+      onPlayerError({ data }) {
+        if (data === 100) {
+          this.error = 'The current video was not found. It has either been removed or is private.';
+        } else if (data === 101 || data === 150) {
+          this.error = 'The owner of the current video does not allow it to be played in embedded players.';
+        } else {
+          this.error = `The current video can not be played. (Error: ${data})`;
+        }
+
+        // if we have more items in the queue, show the next video label
+        const { queue } = this.$parent.$refs;
+        this.showNextVideoStr = (queue.items.length !== 0);
+
+        // tell the server the video has an error
+        if (this.isHost) {
+          this.$root.$emit('send', { type: 'video--error' });
+        }
       },
 
       /**
@@ -440,7 +471,6 @@
         });
       },
 
-
       debugDeltaColour() {
         if (this.delta > 0.4) return 'red';
         if (this.delta > 0.25) return 'orange';
@@ -519,6 +549,38 @@
           border-top-color: #d25a3c;
         }
       }
+    }
+  }
+
+  .player__error {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.75);
+    }
+
+    span {
+      position: relative;
+      padding: 10px 15px;
+      background-color: rgba(255, 0, 0, 0.75);
+      z-index: 1;
     }
   }
 

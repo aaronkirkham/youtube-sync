@@ -7,6 +7,8 @@ export class Room {
   readonly clients: Set<Client> = new Set();
   private current: Video = null;
   private queue: Video[] = [];
+  private error: boolean = false;
+  private errTimeout: NodeJS.Timeout = null;
 
   constructor(id: string) {
     this.id = id;
@@ -34,6 +36,7 @@ export class Room {
     client.on('video--update', data => this.updateVideo(client, data));
     client.on('video--playbackrate', data => this.updateVideoPlaybackRate(client, data));
     client.on('video--clock', data => this.syncClock(client, data));
+    client.on('video--error', () => this.handleVideoError(client));
 
     // send the current room state to the client
     if (this.current || this.queue.length > 0) {
@@ -78,9 +81,17 @@ export class Room {
     if (this.current && !this.current.hasEnded()) {
       this.queue.push(video);
       this.emit('queue--add', video.data());
+
+      // current video has an error, skip to next video in queue
+      if (this.error && !this.errTimeout) {
+        this.nextVideo(this.host);
+      }
     } else {
       this.current = video;
       this.emit('video--play', video.data());
+
+      // clear error timeout
+      this.clearError();
     }
   }
 
@@ -90,8 +101,6 @@ export class Room {
    * @param data Object containing the video id to queue
    */
   queueRemove(client: Client, data: any): void {
-    // TODO: permissions?
-
     const index = this.queue.findIndex(video => video.id === data.id);
     if (index !== -1) {
       const removed = this.queue.splice(index, 1);
@@ -129,6 +138,9 @@ export class Room {
 
       // remove the item from the queue
       this.queueRemove(client, { id });
+
+      // clear error timeout
+      this.clearError();
     }
   }
 
@@ -204,6 +216,9 @@ export class Room {
 
       // remove the video we queued from the queue list
       this.queueRemove(client, { id: next.id });
+
+      // clear error timeout
+      this.clearError();
     } else {
       this.emit('video--ended');
     }
@@ -225,6 +240,39 @@ export class Room {
     }
 
     this.setTimeAndSyncClock(client, data.time);
+  }
+
+  /**
+   * A video error occured. Start a timer to automatically play the next video
+   * @param client Client who reported the video error
+   */
+  handleVideoError(client: Client): void {
+    if (!this.host.is(client)) return;
+    if (this.error) return;
+
+    this.error = true;
+
+    // if we have other videos in the queue, play the next one automatically.
+    if (this.queue.length !== 0) {
+      this.errTimeout = setTimeout(
+        () => {
+          this.nextVideo(client);
+          this.errTimeout = null;
+        },
+        3500);
+    }
+  }
+
+  /**
+   * Clear the current error timeout if set
+   */
+  clearError(): void {
+    this.error = false;
+
+    if (this.errTimeout) {
+      clearTimeout(this.errTimeout);
+      this.errTimeout = null;
+    }
   }
 
   /**
