@@ -15,12 +15,8 @@
     </draggable>
     <vue-context ref="menu">
       <template v-if="child.data" slot-scope="child">
-        <li>
-          <a href="#" @click.prevent="requestPlay(child.data.video)">Play</a>
-        </li>
-        <li>
-          <a href="#" @click.prevent="requestRemove(child.data.video)">Remove</a>
-        </li>
+        <li><a href="#" @click.prevent="requestPlay(child.data.video)">Play</a></li>
+        <li><a href="#" @click.prevent="requestRemove(child.data.video)">Remove</a></li>
       </template>
     </vue-context>
     <div v-if="items.length === 0" class="queue__empty">

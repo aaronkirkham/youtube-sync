@@ -10,8 +10,10 @@
     <YoutubePlayer ref="player" />
     <PlayerQueue ref="queue" />
     <div v-if="!isOnline" class="loading">
-      <img :src="logo" width="64" height="64">
-      <h2 class="loading__status">{{ connectStatus }}</h2>
+      <svg class="spinner" width="64" height="64" viewBox="0 0 50 50">
+        <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5" />
+      </svg>
+      <h2 class="loading__status">Waiting for server to start{{ connectStatus }}...</h2>
       <h3 v-if="connectError" class="loading__error">{{ connectError }}</h3>
     </div>
   </div>
@@ -31,7 +33,7 @@
       return {
         logo: Logo,
         socket: null,
-        connectStatus: 'Connecting to server...',
+        connectStatus: '',
         connectError: null,
         rootPath: null,
       };
@@ -50,7 +52,7 @@
 
       // update connect status messages
       this.socket.on('connect_error', (err) => { this.connectError = `${err.type}: ${err.message}`; });
-      this.socket.on('reconnect_attempt', (attempt) => { this.connectStatus = `Connecting to server (${attempt})...`; });
+      this.socket.on('reconnect_attempt', (attempt) => { this.connectStatus = ` (${attempt})`; });
 
       this.socket.on('disconnect', (reason) => {
         this.$store.commit('setOnline', false);
@@ -122,7 +124,7 @@
 
     &.connecting {
       > *:not(.loading) {
-        opacity: 0.4;
+        opacity: 0.1;
       }
     }
   }
@@ -158,6 +160,10 @@
     align-items: center;
     justify-content: center;
     z-index: 10001;
+
+    .spinner .path {
+      stroke: #ffffff;
+    }
   }
 
   .loading__status {
@@ -198,6 +204,21 @@
       stroke: #31373d;
       stroke-linecap: round;
       animation: dash 1.5s ease-in-out infinite;
+    }
+  }
+
+  .v-context {
+    border-radius: 2px;
+    outline: none;
+
+    > li > a {
+      font-size: 14px;
+      @include transition(background-color);
+
+      &:hover,
+      &:focus {
+        background-color: #ebebeb;
+      }
     }
   }
 </style>

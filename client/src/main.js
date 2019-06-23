@@ -6,8 +6,7 @@ import store from './store';
 Vue.use(VueMeta);
 
 // click-outside directive
-/* eslint-disable no-param-reassign */
-/* eslint-disable no-underscore-dangle */
+/* eslint-disable no-param-reassign, no-underscore-dangle */
 Vue.directive('click-outside', {
   bind(el, binding) {
     if (typeof binding.value !== 'function') {
