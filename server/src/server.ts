@@ -3,6 +3,7 @@ import http from 'http';
 import socketIo from 'socket.io';
 import { Client } from './client';
 import { Room } from './room';
+import { getRandomString, getFromConfig, isValidUrl } from './util';
 
 export class Server {
   private readonly app: any;
@@ -14,12 +15,12 @@ export class Server {
   constructor() {
     let port = (parseInt(process.env.PORT, 10) || null);
     if (!port) {
-      port = this.getFromConfig('port', 8888);
+      port = getFromConfig('port', 8888);
     }
 
-    const pingInterval = this.getFromConfig('pingInterval', 2500);
-    const webUrl = this.getFromConfig('webUrl', null);
-    const validUrl = this.isValidUrl(webUrl);
+    const pingInterval = getFromConfig('pingInterval', 2500);
+    const webUrl = getFromConfig('webUrl', null);
+    const validUrl = isValidUrl(webUrl);
 
     this.app = express();
     this.httpServ = http.createServer(this.app);
@@ -101,7 +102,7 @@ export class Server {
    * Find a unique room id
    */
   findNewRoomId(): string {
-    const id = Math.random().toString(36).substr(2, 7);
+    const id = getRandomString(8);
     const room = this.rooms.find(r => r.id === id);
 
     if (typeof room !== 'undefined') {
@@ -129,31 +130,5 @@ export class Server {
     const lastSlashPos = referer.lastIndexOf('/');
     const roomId = referer.substr(lastSlashPos + 1, referer.length);
     return roomId;
-  }
-
-  /**
-   * Get a value from the config file
-   * @param key Key to get the value of
-   * @param def Default value incase the key doesn't exist
-   */
-  getFromConfig(key: string, def: any = null): any {
-    const config = require('../config.json');
-
-    if (!config) return def;
-    if (!config.hasOwnProperty(key)) return def;
-    return config[key];
-  }
-
-  /**
-   * Test if a given URL is a valid address
-   * @param url URL to test
-   */
-  isValidUrl(url: string): boolean {
-    try {
-      new URL(url);
-      return true;
-    } catch (e) {
-      return false;
-    }
   }
 }

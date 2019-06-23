@@ -1,3 +1,5 @@
+import { getRandomString } from './util';
+
 interface VideoConstructorObj {
   id: string;
   title: string;
@@ -15,7 +17,7 @@ export class Video {
   private lastSyncTime: number = 0;
 
   constructor({ id, title, thumbnail }: VideoConstructorObj) {
-    this.id = Math.random().toString(36).substr(2, 7);
+    this.id = getRandomString(7);
     this.videoId = id;
     this.title = title;
     this.thumbnail = thumbnail;
