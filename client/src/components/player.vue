@@ -496,6 +496,10 @@
   .player {
     position: relative;
 
+    @media (max-width: 1220px) {
+      grid-column: 1 / 3;
+    }
+
     // 16:9 player aspect ratio
     .player__iframe-container {
       position: relative;

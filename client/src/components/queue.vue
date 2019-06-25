@@ -246,6 +246,10 @@
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
 
+    @media (max-width: 1220px) {
+      grid-column: 1 / 3;
+    }
+
     ::-webkit-scrollbar {
       width: 8px;
       height: 8px;
@@ -277,6 +281,15 @@
     overflow-y: auto; /* fallback for firefox */
     overflow-y: overlay;
 
+    @media (max-width: 1220px) {
+      height: auto;
+
+      > div {
+        display: flex;
+        flex-direction: row;
+      }
+    }
+
     // only use animations if the sort was done by the server (another user re-ordered the queue)
     &:not(.no-sort-animation) {
       .draggable-list-move {
@@ -301,8 +314,19 @@
   .queue-item-container {
     user-select: none;
 
-    &:not(:last-child) {
-      margin-bottom: 10px;
+    @media (max-width: 1220px) {
+      flex-shrink: 0;
+      max-width: 200px;
+
+      &:not(:last-child) {
+        margin-right: 10px;
+      }
+    }
+
+    @media (min-width: 1221px) {
+      &:not(:last-child) {
+        margin-bottom: 10px;
+      }
     }
   }
 
@@ -371,6 +395,10 @@
     font-size: 24px;
     color: rgba(255, 255, 255, 0.5);
 
+    @media (max-width: 1220px) {
+      padding: 25px 0;
+    }
+
     svg {
       fill: rgba(255, 255, 255, 0.5);
       margin-bottom: 10px;
@@ -378,6 +406,7 @@
 
     h3 {
       font-size: 16px;
+      margin-bottom: 0;
     }
   }
 </style>

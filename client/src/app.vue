@@ -13,7 +13,7 @@
       <svg class="spinner" width="64" height="64" viewBox="0 0 50 50">
         <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5" />
       </svg>
-      <h2 class="loading__status">Waiting for server to start{{ connectStatus }}...</h2>
+      <h2 class="loading__status">Creating room{{ connectStatus }}...</h2>
       <h3 v-if="connectError" class="loading__error">{{ connectError }}</h3>
     </div>
   </div>
@@ -107,6 +107,10 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overscroll-behavior: none none;
+
+    @media (max-width: 780px) {
+      padding: 15px;
+    }
   }
 
   input,
@@ -137,10 +141,18 @@
     justify-content: space-between;
     margin: 7px 0 25px;
 
+    @media (max-width: 900px) {
+      flex-direction: column;
+    }
+
     .logo {
       display: flex;
       align-items: center;
       margin: 0;
+
+      @media (max-width: 900px) {
+        margin-bottom: 15px;
+      }
     }
 
     .logo-icon {

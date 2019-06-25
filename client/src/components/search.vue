@@ -79,7 +79,7 @@
         this.error = null;
 
         // limit spam searching
-        if (this.searching || (now - this.lastSearchTime) < 1000) {
+        if (this.searching || this.terms.length === 0 || (now - this.lastSearchTime) < 1000) {
           return;
         }
 
@@ -246,7 +246,7 @@
       content: "";
       position: absolute;
       bottom: 100%;
-      right: 247px;
+      right: calc(50% - 3px);
       width: 0;
       height: 0;
       border: solid transparent;
