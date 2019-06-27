@@ -1,6 +1,6 @@
 <template>
   <aside class="queue">
-    <h2 v-if="items.length !== 0" class="queue__title">Up Next</h2>
+    <h2 v-if="items.length !== 0" class="queue__title">Next in Queue</h2>
     <draggable ref="draggable" v-model="items" animation="100" class="queue__container" @change="change" @start="startDrag()" @end="stopDrag()">
       <transition-group name="draggable-list" tag="div">
         <div v-for="video in items" :key="video.id" class="queue-item-container" @contextmenu.prevent="$refs.menu.open($event, { video })">
