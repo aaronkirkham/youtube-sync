@@ -54,7 +54,7 @@ module.exports = (env, options) => {
       new VueLoaderPlugin(),
       new HtmlWebpackPlugin({
         inject: false,
-        title: 'YouTube Sync',
+        title: 'TubeSync',
         template: require('html-webpack-template'),
         appMountId: 'app',
         appMountHtmlSnippet: '<noscript>Please enable JavaScript to use this app!</noscript>',
@@ -84,7 +84,7 @@ module.exports = (env, options) => {
         outputPath: './assets',
         inject: 'force',
         favicons: {
-          appName: 'YouTube Sync',
+          appName: 'TubeSync',
           appDescription: 'Synchronized YouTube video playback between multiple clients. Create a room, invite your friends and create a playlist of videos to watch together.',
           developerName: null,
           developerURL: null,

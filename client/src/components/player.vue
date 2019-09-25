@@ -98,7 +98,7 @@
     metaInfo() {
       return {
         title: this.currentVideo ? this.currentVideo.title : undefined,
-        titleTemplate: this.currentVideo ? '%s - YouTube Sync' : 'YouTube Sync',
+        titleTemplate: this.currentVideo ? '%s - TubeSync' : 'TubeSync',
       };
     },
     created() {

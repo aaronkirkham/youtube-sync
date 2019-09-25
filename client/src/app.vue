@@ -3,7 +3,7 @@
     <header class="primary-header" role="banner">
       <h1 class="logo">
         <img :src="logo" width="50" height="50" class="logo-icon">
-        YouTube Sync
+        TubeSync
       </h1>
       <SearchBox ref="search" />
     </header>
