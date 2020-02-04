@@ -6,7 +6,7 @@
         <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5" />
       </svg>
     </label>
-    <div v-if="showResults || error" :class="{ 'is-searching': searching }" class="search__results">
+    <div v-if="showResults" :class="{ 'is-searching': searching }" class="search__results">
       <p v-if="error" class="search-error">{{ error }}</p>
       <div v-else ref="container" class="search__results-scroll-container">
         <a v-for="(result, idx) in results" :key="idx" class="search-result" :href="result.url" target="_blank" @click.prevent="queueResult(result)">
@@ -23,7 +23,6 @@
 
 <script>
   export default {
-    name: 'SearchBox',
     data() {
       return {
         terms: '',
@@ -66,7 +65,10 @@
        */
       closeResults() {
         if (this.showResults) {
-          this.resultsScroll = this.$refs.container.scrollTop;
+          if (!this.error) {
+            this.resultsScroll = this.$refs.container.scrollTop;
+          }
+
           this.showResults = false;
         }
       },
@@ -173,6 +175,7 @@
     color: #de2925;
     padding: 0 5px;
     text-align: center;
+    word-break: break-word;
   }
 
   .search-label {
