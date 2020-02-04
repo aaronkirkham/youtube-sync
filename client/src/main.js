@@ -6,7 +6,6 @@ import store from './store';
 Vue.use(VueMeta);
 
 // click-outside directive
-/* eslint-disable no-param-reassign, no-underscore-dangle */
 Vue.directive('click-outside', {
   bind(el, binding) {
     if (typeof binding.value !== 'function') {
@@ -14,18 +13,18 @@ Vue.directive('click-outside', {
       return;
     }
 
-    el.__vueClickOutsideHandler__ = (event) => {
+    el.vueClickOutsideHandler = (event) => {
       const { bubble } = binding.modifiers;
       if (bubble || (!el.contains(event.target) && el !== event.target)) {
         binding.value(event);
       }
     };
 
-    document.body.addEventListener('mousedown', el.__vueClickOutsideHandler__);
+    document.body.addEventListener('mousedown', el.vueClickOutsideHandler);
   },
   unbind(el) {
-    document.body.removeEventListener('mousedown', el.__vueClickOutsideHandler__);
-    el.__vueClickOutsideHandler__ = null;
+    document.body.removeEventListener('mousedown', el.vueClickOutsideHandler);
+    el.vueClickOutsideHandler = null;
   },
 });
 
