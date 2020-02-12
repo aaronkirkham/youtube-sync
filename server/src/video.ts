@@ -1,4 +1,4 @@
-import { getRandomString } from './util';
+import { getRandomString } from './util.js';
 
 interface VideoConstructorObj {
   id: string;

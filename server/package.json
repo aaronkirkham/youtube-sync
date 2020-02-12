@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Sync youtube video playback between multiple clients.",
   "main": "./dist/index.js",
+  "type": "module",
   "scripts": {
     "build": "tsc",
     "build:watch": "tsc --watch",
@@ -29,7 +30,7 @@
     "chai": "^4.2.0",
     "eslint": "^6.8.0",
     "eslint-config-airbnb": "^18.0.1",
-    "mocha": "^7.0.1",
+    "mocha": "^7.0.0-esm1",
     "typescript": "^3.7.5"
   }
 }

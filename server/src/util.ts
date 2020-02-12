@@ -7,19 +7,6 @@ export function getRandomString(length: number): string {
 }
 
 /**
-   * Get a value from the config file
-   * @param key Key to get the value of
-   * @param def Default value incase the key doesn't exist
-   */
-export function getFromConfig(key: string, def: any = null): any {
-  const config = require('../config.json');
-
-  if (!config) return def;
-  if (!config.hasOwnProperty(key)) return def;
-  return config[key];
-}
-
-/**
    * Test if a given URL is a valid address
    * @param url URL to test
    */

@@ -1,9 +1,9 @@
 import express from 'express';
 import http from 'http';
 import socketIo from 'socket.io';
-import { Client } from './client';
-import { Room } from './room';
-import { getRandomString, getFromConfig, isValidUrl } from './util';
+import { Client } from './client.js';
+import { Room } from './room.js';
+import { getRandomString, isValidUrl } from './util.js';
 
 export class Server {
   private readonly app: any;
@@ -13,22 +13,19 @@ export class Server {
   private rooms: Room[] = [];
 
   constructor() {
-    let port = (parseInt(process.env.PORT, 10) || null);
-    if (!port) {
-      port = getFromConfig('port', 8888);
-    }
-
-    const pingInterval = getFromConfig('pingInterval', 2500);
-    const webUrl = getFromConfig('webUrl', null);
+    const port = (parseInt(process.env.PORT, 10) || 8888);
+    const pingInterval = (parseInt(process.env.PING, 10) || 2500);
+    const webUrl = process.env.WEBURL;
     const validUrl = isValidUrl(webUrl);
 
     this.app = express();
     this.httpServ = http.createServer(this.app);
     this.io = socketIo(this.httpServ, { pingInterval });
 
-    // handle connections to the server
+    // any requests to this server will be forward to the front-end
+    // if a valid weburl was provided.
     this.app.get('/', (req: any, res: any) => {
-      if (!validUrl) return res.status(500).send();
+      if (!validUrl) return res.status(501).send();
       return res.redirect(webUrl);
     });
 
@@ -59,7 +56,7 @@ export class Server {
       socket.on('disconnect', () => this.leave(client));
     });
 
-    this.httpServ.listen(port, () => console.log('Server is listening on port', port));
+    this.httpServ.listen(port);
   }
 
   /**

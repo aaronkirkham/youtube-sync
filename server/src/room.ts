@@ -1,5 +1,5 @@
-import { Client } from './client';
-import { Video } from './video';
+import { Client } from './client.js';
+import { Video } from './video.js';
 
 export class Room {
   readonly id: string;

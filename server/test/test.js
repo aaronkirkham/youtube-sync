@@ -1,13 +1,11 @@
-/* eslint-disable */
+import chai from 'chai';
+import io from 'socket.io-client';
+import { Server } from '../dist/server.js';
+import { Client } from '../dist/client.js';
 
-const expect = require('chai').expect;
-const assert = require('chai').assert;
-
-const Server = require('../dist/server').Server;
-const Client = require('../dist/client').Client;
+const { expect } = chai;
 
 // host/port of the server to connect to
-const io = require('socket.io-client');
 const SOCKET_ADDR = 'http://localhost:8888';
 const SOCKET_OPTS = { forceNew: true };
 
@@ -15,12 +13,14 @@ describe('Server', () => {
   let server = null;
   let host = null;
 
+  // before each test
   before((done) => {
     server = new Server();
     host = new Client(io(SOCKET_ADDR, SOCKET_OPTS));
     host.socket.on('connect', done);
   });
 
+  // after each test
   after((done) => {
     host.socket.disconnect();
     server.io.close(done);
@@ -29,12 +29,12 @@ describe('Server', () => {
   // unsubscribe to all event listeners after each test
   afterEach(() => host.offAll());
 
-  it('is listening', () => {
+  it('client connected successfully', () => {
     expect(server.io).to.not.be.undefined;
+    expect(server.clients).to.have.property('size', 1);
   });
 
-  it('created a room and made us host', () => {
-    expect(server.clients).to.have.property('size', 1);
+  it('created a room and assigned host', () => {
     expect(server.rooms).to.have.lengthOf(1);
     expect(server.rooms[0].host.socket.id).to.equal(host.socket.id);
   });
@@ -111,7 +111,7 @@ describe('Server', () => {
     expect(room.queue).to.be.empty;
   });
 
-  describe('Client joins same room', () => {
+  describe('Handles new connections', () => {
     let client2 = null;
 
     before((done) => {
@@ -135,7 +135,7 @@ describe('Server', () => {
     after(() => client2.socket.disconnect());
     afterEach(() => client2.offAll());
 
-    it('was added to the rooms client list', () => {
+    it('client was added to the rooms client list', () => {
       expect(server.clients).to.have.property('size', 2);
       expect(server.rooms[0].clients).to.have.property('size', 2);
     });
