@@ -27,4 +27,4 @@ If you are running a server which isn't using the default port, you will need to
 |env|Description|Default|
 |:---|---|---|
 |`PORT`|Port the server will listen on|`8888`|
-|`PING`|Polling rate of the server (in milliseconds), this is the rate at which video information will be sent from the room host to the server, higher numbers will result in lower bandwidth, but may cause higher latency between clients|`2500`|
+|`TICKRATE`|Polling rate of the server (in milliseconds), this is the rate at which video information will be sent from the room host to the server, higher numbers will result in lower bandwidth, but may cause higher latency between clients|`2500`|

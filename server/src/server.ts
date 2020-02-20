@@ -14,7 +14,7 @@ export class Server {
 
   constructor() {
     const port = (parseInt(process.env.PORT, 10) || 8888);
-    const pingInterval = (parseInt(process.env.PING, 10) || 2500);
+    const pingInterval = (parseInt(process.env.TICKRATE, 10) || 2500);
     const webUrl = process.env.WEBURL;
     const validUrl = isValidUrl(webUrl);
 
