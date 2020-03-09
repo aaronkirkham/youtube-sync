@@ -247,8 +247,9 @@ export class Room {
    * @param client Client who reported the video error
    */
   handleVideoError(client: Client): void {
-    if (!this.host.is(client)) return;
-    if (this.error) return;
+    if (!this.host.is(client) || this.error) {
+      return;
+    }
 
     this.error = true;
 

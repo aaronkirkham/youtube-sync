@@ -122,7 +122,9 @@ export class Server {
    * @param param
    */
   getRoomIdFromHeaders({ referer }: any): string {
-    if (typeof referer === 'undefined') return null;
+    if (typeof referer === 'undefined') {
+      return null;
+    }
 
     const lastSlashPos = referer.lastIndexOf('/');
     const roomId = referer.substr(lastSlashPos + 1, referer.length);

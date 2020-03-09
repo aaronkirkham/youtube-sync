@@ -7,9 +7,9 @@ export function getRandomString(length: number): string {
 }
 
 /**
-   * Test if a given URL is a valid address
-   * @param url URL to test
-   */
+ * Test if a given URL is a valid address
+ * @param url URL to test
+ */
 export function isValidUrl(url: string): boolean {
   try {
     new URL(url);
