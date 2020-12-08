@@ -4,10 +4,42 @@ interface VideoConstructorObj {
   id: string;
   title: string;
   thumbnail: string;
+  provider: string;
+}
+
+interface BasicVideoInfo {
+  id: string;
+  provider: string;
+  videoId: string;
+  title: string;
+  thumbnail: string;
+}
+
+interface FullVideoInfo extends BasicVideoInfo {
+  state: number;
+  time: number;
+  rate: number;
+}
+
+interface StateVideoInfo {
+  id: string;
+  state: number;
+  time: number;
+}
+
+interface RateVideoInfo {
+  id: string;
+  rate: number;
+}
+
+interface ClockVideoInfo {
+  id: string;
+  time: number;
 }
 
 export class Video {
   readonly id: string;
+  private readonly provider: string;
   private readonly videoId: string;
   private readonly title: string;
   private readonly thumbnail: string;
@@ -16,8 +48,9 @@ export class Video {
   private playbackRate: number = 1;
   private lastSyncTime: number = 0;
 
-  constructor({ id, title, thumbnail }: VideoConstructorObj) {
+  constructor({ id, title, thumbnail, provider }: VideoConstructorObj) {
     this.id = getRandomString(7);
+    this.provider = provider;
     this.videoId = id;
     this.title = title;
     this.thumbnail = thumbnail;
@@ -27,9 +60,10 @@ export class Video {
    * Get basic information about the video
    * (id, videoId, title, thumbnail)
    */
-  data(): object {
+  data(): BasicVideoInfo {
     return {
       id: this.id,
+      provider: this.provider,
       videoId: this.videoId,
       title: this.title,
       thumbnail: this.thumbnail,
@@ -40,7 +74,7 @@ export class Video {
    * Get detailed information about the video
    * (id, videoId, title, thumbnail, state, time, playbackRate)
    */
-  fullData(): object {
+  fullData(): FullVideoInfo {
     return {
       ...this.data(),
       state: this.state,
@@ -53,7 +87,7 @@ export class Video {
    * Get basic information about the video state
    * (id, state, time)
    */
-  stateData(): object {
+  stateData(): StateVideoInfo {
     return {
       id: this.id,
       state: this.state,
@@ -65,7 +99,7 @@ export class Video {
    * Get basic information about the video playback rate
    * (id, rate)
    */
-  rateData(): object {
+  rateData(): RateVideoInfo {
     return {
       id: this.id,
       rate: this.playbackRate,
@@ -76,7 +110,7 @@ export class Video {
    * Get clock information about the video
    * (id, time)
    */
-  clockData(): object {
+  clockData(): ClockVideoInfo {
     return {
       id: this.id,
       time: this.getTime(),

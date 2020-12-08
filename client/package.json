@@ -4,7 +4,7 @@
   "description": "Sync youtube video playback between multiple clients.",
   "main": "./src/main.js",
   "scripts": {
-    "start": "webpack-dev-server --host 0.0.0.0 --mode development",
+    "start": "webpack-dev-server --mode development",
     "build:dev": "webpack --progress --hide-modules --mode development",
     "build": "webpack --progress --hide-modules --mode production",
     "watch": "webpack --progress --watch --mode development",
@@ -22,6 +22,7 @@
   "homepage": "https://github.com/aaronkirkham/youtube-sync#readme",
   "devDependencies": {
     "@babel/core": "^7.8.3",
+    "@babel/helper-compilation-targets": "^7.12.5",
     "@babel/preset-env": "^7.8.3",
     "babel-loader": "^8.0.6",
     "css-loader": "^3.4.2",
@@ -41,7 +42,7 @@
     "webapp-webpack-plugin": "^2.7.1",
     "webpack": "^4.41.5",
     "webpack-cli": "^3.3.10",
-    "webpack-dev-server": "^3.10.1"
+    "webpack-dev-server": "^3.11.0"
   },
   "dependencies": {
     "socket.io-client": "^2.3.0",

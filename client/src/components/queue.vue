@@ -119,7 +119,7 @@
         /**
          * NOTE: When we drag an item and move it, the hover state will be applied to the
          * index of the item where we initially started dragging from. That's ugly, so this
-         * little hack will forcefully chance the hover states using CSS.
+         * little hack will forcefully change the hover states using CSS.
          */
         const undoHackToFixBrowserBug = () => {
           oldElement.classList.remove('no-hover-animations');
@@ -143,18 +143,22 @@
       requestAdd(video) {
         if (typeof video === 'string') {
           // ensure the url is valid
-          const segments = video.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/);
-          if (segments === null || typeof segments[2] === 'undefined' || segments[2].length === 0) {
+          const segments = video.match(/^.*((youtu.be\/|vimeo.com\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#\&\?]*).*/);
+          if (segments === null || typeof segments[7] === 'undefined' || segments[7].length === 0) {
             return;
           }
+
+          // https://www.youtube.com/watch?v=waAlgFq9Xq8
+          // https://vimeo.com/336812660
 
           fetch(`https://noembed.com/embed?url=${video}`, { method: 'get' })
             .then(res => res.json())
             .then((data) => {
-              const { title, url } = data;
+              const { provider_name, title, url } = data;
               this.$root.$emit('send', {
                 type: 'queue--add',
-                id: segments[2],
+                provider: provider_name,
+                id: segments[7],
                 thumbnail: data.thumbnail_url.replace('hqdefault', 'mqdefault'),
                 title,
                 url,

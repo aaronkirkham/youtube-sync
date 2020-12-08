@@ -94,8 +94,8 @@
           return;
         }
 
-        // was a youtube url pasted?
-        if (this.terms.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/)) {
+        // was a youtube or vimeo url pasted?
+        if (this.terms.match(/^.*((youtu.be\/|vimeo.com\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#\&\?]*).*/)) {
           this.$root.$emit('queue-video', this.terms);
           this.terms = '';
           return;

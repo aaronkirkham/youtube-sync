@@ -30,12 +30,14 @@ export class Server {
     });
 
     // register client handlers on new connection
-    this.io.on('connection', (socket) => {
+    this.io.on('connection', (socket: socketIo.Socket) => {
       const client = new Client(socket);
       this.clients.add(client);
 
       // find the target room id
-      let id = this.getRoomIdFromHeaders(socket.handshake.headers);
+      // let id = this.getRoomIdFromHeaders(socket.handshake.headers);
+      let id = socket.handshake.query?.room;
+      console.log(`id: ${id}`);
 
       // if that room doesn't exist, generate a new one
       // NOTE: this is so users can't type very long strings as the room id
@@ -122,6 +124,7 @@ export class Server {
    * @param param
    */
   getRoomIdFromHeaders({ referer }: any): string {
+    console.log('getRoomIdFromHeaders:', referer);
     if (typeof referer === 'undefined') {
       return null;
     }

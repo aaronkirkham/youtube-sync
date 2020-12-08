@@ -7,7 +7,7 @@
       </h1>
       <SearchBox ref="search" />
     </header>
-    <YoutubePlayer ref="player" />
+    <Player ref="player" />
     <PlayerQueue ref="queue" />
     <div v-if="!isOnline" class="loading">
       <svg class="spinner" width="64" height="64" viewBox="0 0 50 50">
@@ -22,13 +22,17 @@
 <script>
   import { mapState } from 'vuex';
   import io from 'socket.io-client';
-  import YoutubePlayer from './components/player.vue';
+  import Player from './components/player.vue';
   import PlayerQueue from './components/queue.vue';
   import SearchBox from './components/search.vue';
   import Logo from './assets/logo.svg';
 
   export default {
-    components: { YoutubePlayer, PlayerQueue, SearchBox },
+    components: {
+      Player,
+      PlayerQueue,
+      SearchBox,
+    },
     data() {
       return {
         logo: Logo,
@@ -44,10 +48,16 @@
     mounted() {
       // figure out the root path
       // NOTE: if the client is in a subdirectory, we need to push to the correct relative path later.
-      const { pathname } = document.location;
+      const { pathname, search } = document.location;
       this.rootPath = pathname.substr(0, pathname.lastIndexOf('/') + 1);
 
-      this.socket = io(process.env.MODE === 'development' ? 'http://localhost:8888' : process.env.SOCKETURL);
+      const url = new URL(process.env.MODE === 'development' ? 'http://localhost:8888' : process.env.SOCKETURL);
+      const params = new URLSearchParams(search);
+      if (params.has('room')) {
+        url.searchParams.append('room', params.get('room'));
+      }
+
+      this.socket = io(url.toString());
       this.socket.on('connect', () => this.$store.commit('setOnline', true));
 
       // update connect status messages
@@ -72,7 +82,7 @@
       // register send events
       this.$root.$on('send', data => this.socket.emit(`client__${data.type}`, data));
       this.$root.$on('server__im_the_host', () => this.$store.commit('setHost', true));
-      this.$root.$on('server__update_url', data => window.history.replaceState(null, null, data.id));
+      this.$root.$on('server__update_url', data => window.history.replaceState(null, null, `/?room=${data.id}`));
 
       // register receive events
       this.socket.on('recv', data => this.$root.$emit(`server__${data.type}`, data));
@@ -99,11 +109,11 @@
   }
 
   body {
-    background-image: linear-gradient(0deg, #272e37 0%, #32383f 100%);
     font-family: 'PT Sans', sans-serif;
     font-weight: 700;
     color: #ffffff;
     padding: 50px;
+    background-image: linear-gradient(0deg, #272e37 0%, #32383f 100%);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overscroll-behavior: none none;
